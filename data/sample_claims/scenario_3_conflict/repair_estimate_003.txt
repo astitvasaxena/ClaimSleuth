@@ -1,0 +1,14 @@
+=======================================================
+             HOME TECH ON-SITE DIAGNOSTIC
+=======================================================
+Field Dispatch No: DISP-44012
+Date: 2024-08-14
+Customer: David Sterling
+
+Appliance Model: HomeCool Refrigerator
+Serial Number: REF-HC-99400-B
+Technician Findings: Compressor locked rotor failure with secondary refrigerant leak in evaporator coil.
+Part Replacement: High-efficiency rotary compressor + filter drier
+Estimated Cost: $650.00
+Technician: Bob Jenkins (HVAC/Appliance Cert #9011)
+=======================================================

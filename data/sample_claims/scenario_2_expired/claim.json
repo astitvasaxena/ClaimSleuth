@@ -1,0 +1,9 @@
+{
+  "claim_id": "CLM-2024-002",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "claimant_id": "USR-4011",
+  "claimant_name": "Marcus Vance",
+  "device_model": "OmniLaptop Ultra 14",
+  "incident_date": "2024-04-12",
+  "reported_issue": "Laptop fails to power on. Power indicator light blinks three times then shuts off."
+}

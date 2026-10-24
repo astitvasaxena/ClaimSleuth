@@ -1,0 +1,14 @@
+=======================================================
+             ELECTRONICS OUTLET RECEIPT
+=======================================================
+Store: MicroCenter Tech Hub
+Customer: Marcus Vance
+Receipt ID: REC-99210-NV
+Purchase Date: 2023-01-10
+
+Product: OmniLaptop Ultra 14 i7 16GB RAM 512GB SSD
+Serial Number: OMNI-LT-554109
+Retail Price: $1299.99
+Standard Manufacturer Warranty: 12 Months
+Policy: POL-LAPTOP-STD-02
+=======================================================

@@ -1,0 +1,13 @@
+=======================================================
+             APPLIANCE DEPOT SALES INVOICE
+=======================================================
+Invoice No: AP-77192
+Customer: David Sterling
+Purchase Date: 2023-06-01
+
+Appliance: HomeCool French Door Refrigerator Stainless
+Serial Number: REF-HC-77100-A
+Total Price: $1899.00
+Covered by: HomeSafe 3-Year Major Appliance Warranty
+Policy ID: POL-APPLIANCE-PLUS-03
+=======================================================

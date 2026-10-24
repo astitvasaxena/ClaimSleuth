@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClaimSleuth — Forensic AI Warranty Command Center</title>
+    <meta name="description" content="Agentic AI Warranty Investigation Command Center featuring deterministic dual-gate verification, multi-agent orchestration, and real-time evidence synthesis.">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-deep: #07090C;
+            --bg-base: #0B0E12;
+            --bg-surface: #10151C;
+            --bg-surface-elevated: #151C26;
+            --bg-surface-glass: rgba(16, 21, 28, 0.78);
+            --border-subtle: rgba(255, 255, 255, 0.08);
+            --border-focus: rgba(103, 221, 245, 0.4);
+            --text-primary: #F2F5F7;
+            --text-secondary: #8996A3;
+            --text-tertiary: #526071;
+            --accent-cyan: #67DDF5;
+            --accent-cyan-dim: rgba(103, 221, 245, 0.12);
+            --accent-cyan-glow: rgba(103, 221, 245, 0.28);
+            --status-amber: #E9BD73;
+            --status-amber-dim: rgba(233, 189, 115, 0.14);
+            --status-green: #34D399;
+            --status-green-dim: rgba(52, 211, 153, 0.14);
+            --status-red: #F87171;
+            --status-red-dim: rgba(248, 113, 113, 0.14);
+            --status-indigo: #818CF8;
+            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+            --radius-xl: 22px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html, body {
+            background-color: var(--bg-base);
+            color: var(--text-primary);
+            font-family: var(--font-sans);
+            line-height: 1.5;
+            min-height: 100vh;
+            overflow-x: hidden;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* Ambient Dimensional Atmosphere */
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: 
+                radial-gradient(ellipse 90% 60% at 50% -20%, rgba(103, 221, 245, 0.07) 0%, transparent 60%),
+                radial-gradient(ellipse 70% 50% at 85% 100%, rgba(129, 140, 248, 0.05) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 40% at 10% 80%, rgba(233, 189, 115, 0.03) 0%, transparent 60%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* Subtle Forensic Gridlines */
+        body::after {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-image: 
+                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
+            background-size: 60px 60px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ==========================================================================
+           CINEMATIC OPENING INTRO CURTAIN
+           ========================================================================== */
+        #cinematicIntro {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: var(--bg-deep);
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            pointer-events: none;
+            transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.65s;
+        }
+
+        #cinematicIntro.dissolve {
+            opacity: 0;
+            visibility: hidden;
+        }
+
+        .intro-emblem {
+            position: relative;
+            width: 80px;
+            height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .intro-ring {
+            position: absolute;
+            inset: 0;
+            border-radius: 50%;
+            border: 1px solid var(--accent-cyan);
+            opacity: 0.35;
+            animation: introRingSpin 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+        }
+
+        .intro-ring:nth-child(2) {
+            inset: -12px;
+            border-style: dashed;
+            opacity: 0.2;
+            animation: introRingSpin 4s linear infinite reverse;
+        }
+
+        .intro-core-dot {
+            width: 28px;
+            height: 28px;
+            background: radial-gradient(circle, var(--accent-cyan) 0%, rgba(103, 221, 245, 0.2) 70%, transparent 100%);
+            border-radius: 50%;
+            box-shadow: 0 0 24px var(--accent-cyan-glow);
+        }
+
+        .intro-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            letter-spacing: 0.35em;
+            text-transform: uppercase;
+            color: var(--text-primary);
+            margin-bottom: 0.4rem;
+        }
+
+        .intro-sub {
+            font-size: 0.7rem;
+            letter-spacing: 0.2em;
+            text-transform: uppercase;
+            color: var(--text-secondary);
+            font-family: var(--font-mono);
+        }
+
+        @keyframes introRingSpin {
+            0% { transform: rotate(0deg) scale(0.95); }
+            50% { transform: rotate(180deg) scale(1.05); }
+            100% { transform: rotate(360deg) scale(0.95); }
+        }
+
+        /* Reduced Motion */
+        @media (prefers-reduced-motion: reduce) {
+            #cinematicIntro { display: none !important; }
+            * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
+        }
+
+        /* ==========================================================================
+           TOP NAVIGATION BAR
+           ========================================================================== */
+        header {
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            background: rgba(11, 14, 18, 0.88);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border-bottom: 1px solid var(--border-subtle);
+            padding: 0.85rem 2rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .nav-brand-group {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .brand-monogram {
+            width: 38px;
+            height: 38px;
+            border-radius: var(--radius-md);
+            background: linear-gradient(135deg, rgba(103, 221, 245, 0.15), rgba(129, 140, 248, 0.1));
+            border: 1px solid var(--border-focus);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--accent-cyan);
+            box-shadow: 0 0 16px rgba(103, 221, 245, 0.15);
+        }
+
+        .brand-text-stack {
+            display: flex;
+            flex-direction: column;
+        }
+
+        .brand-heading {
+            font-size: 1.1rem;
+            font-weight: 800;
+            letter-spacing: -0.01em;
+            color: var(--text-primary);
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .brand-version {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            font-weight: 600;
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            background: var(--accent-cyan-dim);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(103, 221, 245, 0.25);
+            letter-spacing: 0.04em;
+        }
+
+        .brand-subheading {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+        }
+
+        .nav-controls {
+            display: flex;
+            align-items: center;
+            gap: 1.25rem;
+        }
+
+        .system-telemetry-badge {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            padding: 0.35rem 0.8rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .pulse-indicator {
+            width: 7px;
+            height: 7px;
+            border-radius: 50%;
+            background-color: var(--status-green);
+            box-shadow: 0 0 8px var(--status-green);
+            animation: telemetryPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes telemetryPulse {
+            0%, 100% { opacity: 1; transform: scale(1); }
+            50% { opacity: 0.4; transform: scale(0.85); }
+        }
+
+        .btn-tech-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.45rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            font-family: var(--font-sans);
+            color: var(--text-secondary);
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            padding: 0.45rem 0.85rem;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .btn-tech-toggle:hover {
+            color: var(--text-primary);
+            border-color: var(--border-focus);
+            background: rgba(103, 221, 245, 0.06);
+        }
+
+        /* Status Pills */
+        .status-pill {
+            display: inline-flex;
+            align-items: center;
+            font-weight: 700;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+            padding: 0.25rem 0.75rem;
+            border-radius: 9999px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+
+        .status-INITIALIZED {
+            background: rgba(255, 255, 255, 0.06);
+            color: var(--text-secondary);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .status-VERIFIED_PENDING_APPROVAL {
+            background: var(--status-green-dim);
+            color: var(--status-green);
+            border: 1px solid rgba(52, 211, 153, 0.35);
+            box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
+        }
+
+        .status-REJECTED_DETERMINISTICALLY {
+            background: var(--status-red-dim);
+            color: var(--status-red);
+            border: 1px solid rgba(248, 113, 113, 0.35);
+        }
+
+        .status-CONFLICT_ESCALATED {
+            background: var(--status-amber-dim);
+            color: var(--status-amber);
+            border: 1px solid rgba(233, 189, 115, 0.35);
+        }
+
+        .status-CLOSED_SETTLED {
+            background: var(--status-green);
+            color: #052416;
+            font-weight: 800;
+            box-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
+        }
+
+        .status-CLOSED_REJECTED {
+            background: var(--status-red);
+            color: #2b0404;
+            font-weight: 800;
+        }
+
+        .status-NEEDS_EVIDENCE {
+            background: var(--status-amber);
+            color: #2b1a04;
+            font-weight: 800;
+        }
+
+        /* ==========================================================================
+           MAIN CONTAINER & LAYOUT STRUCTURE
+           ========================================================================== */
+        .app-shell {
+            position: relative;
+            z-index: 1;
+            max-width: 1520px;
+            margin: 0 auto;
+            padding: 1.5rem 2rem 4rem;
+        }
+
+        /* ==========================================================================
+           SCENARIO SELECTOR RIBBON
+           ========================================================================== */
+        .scenario-ribbon {
+            margin-bottom: 1.75rem;
+        }
+
+        .ribbon-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .ribbon-label {
+            font-size: 0.7rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--text-tertiary);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .scenarios-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1rem;
+        }
+
+        .scenario-card {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 1rem 1.15rem;
+            cursor: pointer;
+            position: relative;
+            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow: hidden;
+        }
+
+        .scenario-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 3px;
+            height: 100%;
+            background: transparent;
+            transition: background 0.2s ease;
+        }
+
+        .scenario-card:hover {
+            background: var(--bg-surface-elevated);
+            border-color: rgba(255, 255, 255, 0.14);
+            transform: translateY(-2px);
+        }
+
+        .scenario-card.active {
+            background: var(--bg-surface-elevated);
+            border-color: var(--border-focus);
+            box-shadow: 0 4px 20px rgba(103, 221, 245, 0.08);
+        }
+
+        .scenario-card.active::before {
+            background: var(--accent-cyan);
+            box-shadow: 0 0 10px var(--accent-cyan);
+        }
+
+        .sc-badge {
+            display: inline-block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+
+        .sc-badge.emerald { background: var(--status-green-dim); color: var(--status-green); border: 1px solid rgba(52, 211, 153, 0.25); }
+        .sc-badge.rose { background: var(--status-red-dim); color: var(--status-red); border: 1px solid rgba(248, 113, 113, 0.25); }
+        .sc-badge.amber { background: var(--status-amber-dim); color: var(--status-amber); border: 1px solid rgba(233, 189, 115, 0.25); }
+
+        .sc-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.35rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .sc-desc {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+            margin-bottom: 0.5rem;
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .sc-expect {
+            font-size: 0.68rem;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+            padding-top: 0.4rem;
+        }
+
+        .sc-expect strong {
+            color: var(--text-secondary);
+        }
+
+        /* ==========================================================================
+           PRIMARY WORKSPACE: EDITORIAL CASE BANNER + 3D EVIDENCE CORE
+           ========================================================================== */
+        .workspace-hero {
+            display: grid;
+            grid-template-columns: 1.15fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 1.75rem;
+            align-items: stretch;
+        }
+
+        /* Left Hero: Case Metadata & Command Trigger */
+        .case-dossier-card {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 2rem;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .case-dossier-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            right: 0;
+            width: 250px;
+            height: 250px;
+            background: radial-gradient(circle at top right, rgba(103, 221, 245, 0.06), transparent 70%);
+            pointer-events: none;
+        }
+
+        .case-eyebrow {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.15em;
+            color: var(--accent-cyan);
+            margin-bottom: 0.5rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .case-headline {
+            font-size: 2.15rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            line-height: 1.1;
+            color: var(--text-primary);
+            margin-bottom: 0.75rem;
+        }
+
+        .case-summary-text {
+            font-size: 0.86rem;
+            color: var(--text-secondary);
+            line-height: 1.5;
+            margin-bottom: 1.5rem;
+            max-width: 580px;
+        }
+
+        .meta-chips-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin-bottom: 1.75rem;
+            padding: 1rem;
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+        }
+
+        .meta-chip {
+            display: flex;
+            flex-direction: column;
+            gap: 0.15rem;
+        }
+
+        .meta-k {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+        }
+
+        .meta-v {
+            font-size: 0.8rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .hero-action-row {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .btn-investigate {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.65rem;
+            background: linear-gradient(135deg, #67DDF5 0%, #3B82F6 100%);
+            color: #06111C;
+            font-weight: 800;
+            font-size: 0.88rem;
+            letter-spacing: 0.02em;
+            padding: 0.9rem 2rem;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            box-shadow: 0 4px 20px rgba(103, 221, 245, 0.25);
+        }
+
+        .btn-investigate:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 24px rgba(103, 221, 245, 0.38);
+            filter: brightness(1.06);
+        }
+
+        .btn-investigate:disabled {
+            opacity: 0.65;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .btn-investigate svg {
+            transition: transform 0.2s ease;
+        }
+
+        .btn-investigate:hover svg {
+            transform: scale(1.1);
+        }
+
+        .investigation-hint {
+            font-size: 0.72rem;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+
+        /* Right Hero: THE EVIDENCE CORE 3D SHOWCASE */
+        .evidence-core-chamber {
+            background: var(--bg-surface-glass);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            min-height: 380px;
+        }
+
+        .core-header-hud {
+            position: absolute;
+            top: 1rem;
+            left: 1.25rem;
+            right: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        .hud-label {
+            font-size: 0.65rem;
+            font-family: var(--font-mono);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: var(--accent-cyan);
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        .hud-status-badge {
+            font-size: 0.62rem;
+            font-family: var(--font-mono);
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+        }
+
+        .evidence-canvas-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        #evidenceCoreCanvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+        }
+
+        .core-footer-hud {
+            position: absolute;
+            bottom: 0.85rem;
+            left: 1.25rem;
+            right: 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            z-index: 10;
+            pointer-events: none;
+            font-size: 0.62rem;
+            font-family: var(--font-mono);
+            color: var(--text-tertiary);
+        }
+
+        .hud-telemetry-item strong {
+            color: var(--text-secondary);
+        }
+
+        /* ==========================================================================
+           RESULTS SUMMARY BANNER
+           ========================================================================== */
+        .results-banner {
+            display: none;
+            margin-bottom: 1.75rem;
+            background: var(--bg-surface-elevated);
+            border: 1px solid var(--border-focus);
+            border-radius: var(--radius-lg);
+            padding: 1.25rem 1.5rem;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
+            animation: bannerReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+        }
+
+        .results-banner.visible {
+            display: block;
+        }
+
+        @keyframes bannerReveal {
+            from { opacity: 0; transform: translateY(-8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-banner-header {
+            font-size: 0.72rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.12em;
+            color: var(--accent-cyan);
+            margin-bottom: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+        }
+
+        .result-card {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.85rem 1rem;
+        }
+
+        .result-card-label {
+            font-size: 0.65rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.3rem;
+        }
+
+        .result-card-value {
+            font-size: 1.15rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+            margin-bottom: 0.2rem;
+            letter-spacing: -0.01em;
+        }
+
+        .result-card-value.approved { color: var(--status-green); }
+        .result-card-value.rejected { color: var(--status-red); }
+        .result-card-value.escalated { color: var(--status-amber); }
+
+        .result-card-note {
+            font-size: 0.68rem;
+            color: var(--text-secondary);
+            line-height: 1.35;
+        }
+
+        /* ==========================================================================
+           TWO-COLUMN MAIN GRID (Timeline vs Dossier/Review)
+           ========================================================================== */
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .panel-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-bottom: 0.75rem;
+            border-bottom: 1px solid var(--border-subtle);
+        }
+
+        .panel-title {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            font-size: 0.95rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+
+        .panel-title svg {
+            color: var(--accent-cyan);
+        }
+
+        /* Investigation Stepper Timeline */
+        .stepper-timeline {
+            display: flex;
+            flex-direction: column;
+            gap: 0.85rem;
+            max-height: 480px;
+            overflow-y: auto;
+            padding-right: 0.25rem;
+        }
+
+        .step-item {
+            display: flex;
+            gap: 0.85rem;
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            font-size: 0.78rem;
+            animation: stepFade 0.3s ease;
+        }
+
+        @keyframes stepFade {
+            from { opacity: 0; transform: translateX(-6px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        .step-pill {
+            font-size: 0.65rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            padding: 0.2rem 0.55rem;
+            border-radius: 4px;
+            height: fit-content;
+            white-space: nowrap;
+            letter-spacing: 0.04em;
+        }
+
+        .phase-PLAN { background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3); }
+        .phase-EXECUTE { background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
+        .phase-OBSERVE { background: rgba(233, 189, 115, 0.15); color: var(--status-amber); border: 1px solid rgba(233, 189, 115, 0.3); }
+        .phase-ASSESS { background: rgba(52, 211, 153, 0.15); color: var(--status-green); border: 1px solid rgba(52, 211, 153, 0.3); }
+
+        .step-body {
+            flex: 1;
+        }
+
+        .step-desc {
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+        }
+
+        .step-reasoning {
+            color: var(--text-secondary);
+            font-size: 0.72rem;
+            line-height: 1.4;
+            margin-bottom: 0.35rem;
+        }
+
+        .step-code {
+            background: rgba(0, 0, 0, 0.4);
+            border: 1px solid var(--border-subtle);
+            border-radius: 4px;
+            padding: 0.25rem 0.5rem;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: var(--accent-cyan);
+            width: fit-content;
+        }
+
+        /* Dual-Gate Verifier Card */
+        .verifier-box {
+            background: rgba(52, 211, 153, 0.04);
+            border: 1px solid rgba(52, 211, 153, 0.25);
+            border-radius: var(--radius-md);
+            padding: 1.15rem;
+        }
+
+        .verifier-box.rejected {
+            background: rgba(248, 113, 113, 0.04);
+            border-color: rgba(248, 113, 113, 0.25);
+        }
+
+        .verifier-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .v-badge {
+            font-size: 0.72rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            padding: 0.25rem 0.75rem;
+            border-radius: 4px;
+            letter-spacing: 0.04em;
+        }
+
+        .v-badge.pass { background: var(--status-green-dim); color: var(--status-green); border: 1px solid rgba(52, 211, 153, 0.35); }
+        .v-badge.fail { background: var(--status-red-dim); color: var(--status-red); border: 1px solid rgba(248, 113, 113, 0.35); }
+
+        .gate-checks {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.75rem;
+        }
+
+        .gate-card {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 0.65rem 0.85rem;
+            border-radius: var(--radius-sm);
+            border: 1px solid var(--border-subtle);
+            font-size: 0.72rem;
+        }
+
+        .gate-label {
+            font-size: 0.62rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            color: var(--text-tertiary);
+            margin-bottom: 0.2rem;
+        }
+
+        .gate-status {
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 0.4rem;
+        }
+
+        /* Financial Math Box */
+        .math-box {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 1.15rem;
+        }
+
+        .math-header {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            color: var(--accent-cyan);
+            margin-bottom: 0.75rem;
+        }
+
+        .math-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.6rem;
+            text-align: center;
+            margin-bottom: 0.75rem;
+        }
+
+        .math-cell {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid var(--border-subtle);
+            padding: 0.6rem 0.4rem;
+            border-radius: var(--radius-sm);
+        }
+
+        .math-label {
+            font-size: 0.6rem;
+            color: var(--text-tertiary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 0.2rem;
+        }
+
+        .math-val {
+            font-size: 1.05rem;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+        }
+
+        .math-val.approved { color: var(--status-green); }
+
+        /* Documents Viewer */
+        .doc-tabs {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 0.65rem;
+            overflow-x: auto;
+            padding-bottom: 0.25rem;
+        }
+
+        .doc-tab {
+            font-size: 0.7rem;
+            font-family: var(--font-mono);
+            padding: 0.35rem 0.75rem;
+            border-radius: var(--radius-sm);
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border-subtle);
+            color: var(--text-secondary);
+            cursor: pointer;
+            white-space: nowrap;
+            transition: all 0.2s ease;
+        }
+
+        .doc-tab.active {
+            background: rgba(103, 221, 245, 0.1);
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            font-weight: 700;
+        }
+
+        .doc-preview {
+            background: #06090D;
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.85rem;
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+            line-height: 1.45;
+            color: #C0CAD3;
+            white-space: pre-wrap;
+            max-height: 170px;
+            overflow-y: auto;
+        }
+
+        /* Evidence Cards */
+        .evidence-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+            max-height: 240px;
+            overflow-y: auto;
+        }
+
+        .evidence-card {
+            background: rgba(0, 0, 0, 0.25);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 0.75rem;
+            font-size: 0.76rem;
+        }
+
+        .evidence-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 0.25rem;
+        }
+
+        .ev-field {
+            font-weight: 700;
+            color: var(--accent-cyan);
+            font-family: var(--font-mono);
+            font-size: 0.72rem;
+        }
+
+        .ev-status {
+            font-size: 0.62rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            padding: 0.15rem 0.45rem;
+            border-radius: 4px;
+        }
+
+        .ev-status.verified { background: var(--status-green-dim); color: var(--status-green); }
+        .ev-status.contradicted { background: var(--status-red-dim); color: var(--status-red); }
+
+        .ev-quote {
+            background: rgba(0, 0, 0, 0.4);
+            border-left: 2px solid var(--accent-cyan);
+            padding: 0.35rem 0.6rem;
+            font-family: var(--font-mono);
+            font-size: 0.68rem;
+            color: #E2E8F0;
+            margin-top: 0.35rem;
+            border-radius: 0 4px 4px 0;
+        }
+
+        .ev-meta {
+            margin-top: 0.35rem;
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.62rem;
+            color: var(--text-tertiary);
+            font-family: var(--font-mono);
+        }
+
+        /* Human In The Loop (HITL) Adjudication */
+        .hitl-box {
+            background: rgba(129, 140, 248, 0.04);
+            border: 1px solid rgba(129, 140, 248, 0.25);
+            border-radius: var(--radius-md);
+            padding: 1.15rem;
+        }
+
+        .hitl-title {
+            font-size: 0.88rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 0.25rem;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .hitl-desc {
+            font-size: 0.72rem;
+            color: var(--text-secondary);
+        }
+
+        .hitl-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.5rem;
+            margin-top: 0.85rem;
+        }
+
+        .btn-action {
+            padding: 0.65rem 0.5rem;
+            border-radius: var(--radius-sm);
+            font-weight: 700;
+            font-size: 0.76rem;
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+        }
+
+        .btn-approve {
+            background: var(--status-green);
+            color: #042215;
+        }
+        .btn-approve:hover { filter: brightness(1.15); box-shadow: 0 2px 10px rgba(52, 211, 153, 0.3); }
+
+        .btn-reject {
+            background: var(--status-red-dim);
+            color: var(--status-red);
+            border: 1px solid rgba(248, 113, 113, 0.35);
+        }
+        .btn-reject:hover { background: rgba(248, 113, 113, 0.22); }
+
+        .btn-info {
+            background: var(--status-amber-dim);
+            color: var(--status-amber);
+            border: 1px solid rgba(233, 189, 115, 0.35);
+        }
+        .btn-info:hover { background: rgba(233, 189, 115, 0.22); }
+
+        /* Cryptographic Audit Trail */
+        .audit-trail {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+            max-height: 220px;
+            overflow-y: auto;
+        }
+
+        .audit-entry {
+            background: rgba(0, 0, 0, 0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 0.55rem 0.75rem;
+            font-size: 0.68rem;
+            font-family: var(--font-mono);
+        }
+
+        .audit-top {
+            display: flex;
+            justify-content: space-between;
+            color: var(--text-tertiary);
+            margin-bottom: 0.2rem;
+        }
+
+        .audit-hash { color: var(--accent-cyan); font-weight: 700; }
+        .audit-type { font-weight: 700; color: var(--text-primary); }
+
+        /* ==========================================================================
+           COLLAPSIBLE TECHNICAL DETAILS CONSOLE
+           ========================================================================== */
+        .tech-details {
+            margin-top: 1rem;
+        }
+
+        .tech-toggle {
+            display: flex;
+            align-items: center;
+            gap: 0.65rem;
+            cursor: pointer;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-md);
+            padding: 0.95rem 1.4rem;
+            font-family: var(--font-sans);
+            color: var(--text-secondary);
+            font-size: 0.84rem;
+            font-weight: 700;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        .tech-toggle:hover {
+            border-color: var(--border-focus);
+            color: var(--text-primary);
+        }
+
+        .tech-toggle-icon {
+            display: inline-block;
+            transition: transform 0.25s ease;
+            font-size: 0.75rem;
+        }
+
+        .tech-toggle.open .tech-toggle-icon {
+            transform: rotate(90deg);
+        }
+
+        .tech-toggle-badges {
+            display: flex;
+            gap: 0.5rem;
+            margin-left: auto;
+        }
+
+        .tech-badge {
+            font-size: 0.65rem;
+            font-weight: 600;
+            font-family: var(--font-mono);
+            padding: 0.15rem 0.5rem;
+            border-radius: 4px;
+        }
+
+        .tech-content {
+            display: none;
+            margin-top: 0.85rem;
+            background: var(--bg-surface);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-lg);
+            padding: 1.5rem;
+            animation: techSlide 0.3s ease;
+        }
+
+        .tech-content.visible { display: block; }
+
+        @keyframes techSlide {
+            from { opacity: 0; transform: translateY(-6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .tech-metrics-bar {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+            padding: 0.85rem 1.15rem;
+            background: rgba(0, 0, 0, 0.35);
+            border-radius: var(--radius-md);
+            border: 1px solid var(--border-subtle);
+        }
+
+        .tech-split {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.25rem;
+        }
+
+        /* ==========================================================================
+           RESPONSIVE BREAKPOINTS
+           ========================================================================== */
+        @media (max-width: 1200px) {
+            .workspace-hero { grid-template-columns: 1fr; }
+            .scenarios-grid { grid-template-columns: 1fr; }
+            .meta-chips-grid { grid-template-columns: repeat(2, 1fr); }
+            .main-grid { grid-template-columns: 1fr; }
+        }
+
+        @media (max-width: 768px) {
+            header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.75rem; }
+            .app-shell { padding: 1rem 1rem 3rem; }
+            .case-headline { font-size: 1.6rem; }
+            .results-grid { grid-template-columns: 1fr 1fr; }
+            .hitl-actions { grid-template-columns: 1fr; }
+            .tech-metrics-bar { grid-template-columns: 1fr 1fr; }
+            .tech-split { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Cinematic Opening Curtain -->
+    <div id="cinematicIntro">
+        <div class="intro-emblem">
+            <div class="intro-ring"></div>
+            <div class="intro-ring"></div>
+            <div class="intro-core-dot"></div>
+        </div>
+        <div class="intro-title">ClaimSleuth</div>
+        <div class="intro-sub">Forensic Evidence Core Online</div>
+    </div>
+
+    <!-- Sticky Top Navigation -->
+    <header>
+        <div class="nav-brand-group">
+            <div class="brand-monogram">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    <path d="M11 8v6"></path>
+                    <path d="M8 11h6"></path>
+                </svg>
+            </div>
+            <div class="brand-text-stack">
+                <div class="brand-heading">
+                    <span>ClaimSleuth</span>
+                    <span class="brand-version">v1.0-alpha</span>
+                </div>
+                <div class="brand-subheading">Agentic AI Warranty Investigation Command Center</div>
+            </div>
+        </div>
+
+        <div class="nav-controls">
+            <div class="system-telemetry-badge">
+                <span class="pulse-indicator"></span>
+                <span>Deterministic Verifier Active</span>
+            </div>
+            <div id="systemClaimStatus">
+                <span class="status-pill status-INITIALIZED">READY</span>
+            </div>
+            <button class="btn-tech-toggle" onclick="toggleTechDetails()">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="4 17 10 11 4 5"></polyline>
+                    <line x1="12" y1="19" x2="20" y2="19"></line>
+                </svg>
+                <span>Console</span>
+            </button>
+        </div>
+    </header>
+
+    <main class="app-shell">
+
+        <!-- Scenario Selection Ribbon -->
+        <section class="scenario-ribbon">
+            <div class="ribbon-header">
+                <div class="ribbon-label">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
+                        <polyline points="2 17 12 22 22 17"></polyline>
+                        <polyline points="2 12 12 17 22 12"></polyline>
+                    </svg>
+                    <span>Sample Investigation Scenarios</span>
+                </div>
+            </div>
+            <div class="scenarios-grid" id="scenariosGrid">
+                <!-- Dynamically loaded via loadScenarios() -->
+            </div>
+        </section>
+
+        <!-- Primary Investigation Workspace: Dossier + Evidence Core 3D -->
+        <section class="workspace-hero">
+            
+            <!-- Left Hero: Active Dossier & Command Trigger -->
+            <div class="case-dossier-card">
+                <div>
+                    <div class="case-eyebrow">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="8" x2="12" y2="12"></line>
+                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                        </svg>
+                        <span>Active Warranty Claim</span>
+                    </div>
+                    <h1 class="case-headline" id="metaClaimId">CLM-2024-001</h1>
+                    <p class="case-summary-text" id="caseSummaryText">
+                        Apple iPhone 15 Pro screen repair claim under active TechGuard policy. Multi-agent evidence synthesis ready for evaluation.
+                    </p>
+
+                    <div class="meta-chips-grid">
+                        <div class="meta-chip">
+                            <span class="meta-k">Policy ID</span>
+                            <span class="meta-v" id="metaPolicyId">POL-TECH-CARE-01</span>
+                        </div>
+                        <div class="meta-chip">
+                            <span class="meta-k">Claimant</span>
+                            <span class="meta-v" id="metaClaimant">Elena Rostova</span>
+                        </div>
+                        <div class="meta-chip">
+                            <span class="meta-k">Incident Date</span>
+                            <span class="meta-v" id="metaIncidentDate">2024-09-20</span>
+                        </div>
+                        <div class="meta-chip">
+                            <span class="meta-k">Investigation</span>
+                            <span class="meta-v" id="metaEngine">Adaptive Gemini</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="hero-action-row">
+                    <button class="btn-investigate" id="runInvestigationBtn" onclick="runInvestigation()">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                        </svg>
+                        <span>Initiate Investigation</span>
+                    </button>
+                    <span class="investigation-hint">Plan → Execute → Observe → Dual-Gate</span>
+                </div>
+            </div>
+
+            <!-- Right Hero: THE EVIDENCE CORE 3D SHOWCASE -->
+            <div class="evidence-core-chamber" id="evidenceCoreChamber">
+                <div class="core-header-hud">
+                    <div class="hud-label">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="3"></circle>
+                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+                        </svg>
+                        <span>Evidence Core Chamber</span>
+                    </div>
+                    <div class="hud-status-badge" id="hudCoreStatus">STANDBY</div>
+                </div>
+
+                <div class="evidence-canvas-wrapper" id="canvasWrapper">
+                    <canvas id="evidenceCoreCanvas"></canvas>
+                </div>
+
+                <div class="core-footer-hud">
+                    <span class="hud-telemetry-item">DIMENSIONAL PROJECTION: <strong>PERSPECTIVE 3D</strong></span>
+                    <span class="hud-telemetry-item" id="hudNodeCount">NODES: <strong>5 SYNTHESIZED</strong></span>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Results Summary Banner (Revealed Upon Investigation) -->
+        <section class="results-banner" id="resultsBanner">
+            <div class="results-banner-header">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
+                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
+                </svg>
+                <span>Investigation Adjudication Synthesis</span>
+            </div>
+            <div class="results-grid">
+                <div class="result-card">
+                    <div class="result-card-label">Investigation Status</div>
+                    <div class="result-card-value" id="rStatus">—</div>
+                    <div class="result-card-note" id="rStatusNote">Awaiting trigger</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-label">Coverage Status</div>
+                    <div class="result-card-value" id="rCoverage">—</div>
+                    <div class="result-card-note" id="rCoverageNote">Calculated deterministically</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-label">Settlement Payout</div>
+                    <div class="result-card-value" id="rPayout">—</div>
+                    <div class="result-card-note" id="rPayoutNote">Repair − Deductible − Dep</div>
+                </div>
+                <div class="result-card">
+                    <div class="result-card-label">Human Review Gate</div>
+                    <div class="result-card-value" id="rApproval">—</div>
+                    <div class="result-card-note" id="rApprovalNote">HITL Policy Compliance</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Two-Column Forensic Grid -->
+        <section class="main-grid">
+
+            <!-- LEFT COLUMN: Stepper Timeline, Dual-Gate Verifier, Financial Settlement -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Forensic Investigation Timeline</span>
+                    </div>
+                    <span id="stepCounter" style="font-size: 0.68rem; color: var(--accent-cyan); font-family: var(--font-mono);">
+                        Adaptive Plan Execution
+                    </span>
+                </div>
+
+                <!-- Stepper Timeline -->
+                <div class="stepper-timeline" id="stepperTimeline">
+                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 2rem;">
+                        Select a claim and click <strong>"Initiate Investigation"</strong> to trigger the autonomous reasoning cycle.
+                    </div>
+                </div>
+
+                <!-- Dual-Gate Verifier Card -->
+                <div class="verifier-box" id="verifierCard" style="display: none;">
+                    <div class="verifier-header">
+                        <div>
+                            <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">Dual-Gate Deterministic Verifier</div>
+                            <div style="font-size: 0.68rem; color: var(--text-secondary);">Zero-LLM Hallucination Authority</div>
+                        </div>
+                        <span class="v-badge pass" id="verifierBadge">VERIFIED PASS</span>
+                    </div>
+                    <div class="gate-checks">
+                        <div class="gate-card">
+                            <div class="gate-label">GATE 1: EVIDENCE SUBSTANTIATION</div>
+                            <div class="gate-status" id="gate1Status">
+                                <span style="color: var(--status-green);">✔ Verbatim Verified</span>
+                            </div>
+                        </div>
+                        <div class="gate-card">
+                            <div class="gate-label">GATE 2: RULES & ARITHMETIC</div>
+                            <div class="gate-status" id="gate2Status">
+                                <span style="color: var(--status-green);">✔ Passed</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div id="discrepancyBox" style="margin-top: 0.65rem; font-size: 0.72rem; color: var(--status-red); font-family: var(--font-mono); display: none;"></div>
+                </div>
+
+                <!-- Financial Settlement Breakdown -->
+                <div class="math-box" id="mathBox" style="display: none;">
+                    <div class="math-header">Deterministic Settlement Breakdown</div>
+                    <div class="math-grid">
+                        <div class="math-cell">
+                            <div class="math-label">Repair Cost</div>
+                            <div class="math-val" id="mathCost">$0.00</div>
+                        </div>
+                        <div class="math-cell">
+                            <div class="math-label">Deductible</div>
+                            <div class="math-val" id="mathDeductible">-$0.00</div>
+                        </div>
+                        <div class="math-cell">
+                            <div class="math-label">Depreciation</div>
+                            <div class="math-val" id="mathDep">-$0.00</div>
+                        </div>
+                        <div class="math-cell">
+                            <div class="math-label">Approved Payout</div>
+                            <div class="math-val approved" id="mathPayout">$0.00</div>
+                        </div>
+                    </div>
+                    <div id="mathExplanation" style="font-size: 0.7rem; color: var(--text-secondary); font-family: var(--font-mono); text-align: center;"></div>
+                </div>
+            </div>
+
+            <!-- RIGHT COLUMN: Evidence Dossier, Human Review, Audit Ledger -->
+            <div class="panel">
+                <div class="panel-header">
+                    <div class="panel-title">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span>Evidence Dossier & Human Review</span>
+                    </div>
+                </div>
+
+                <!-- Document Tabs & Viewer -->
+                <div>
+                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">
+                        Source Evidence Documents
+                    </div>
+                    <div class="doc-tabs" id="docTabs"></div>
+                    <div class="doc-preview" id="docContent">Select a document above to inspect source text...</div>
+                </div>
+
+                <!-- Extracted Facts -->
+                <div>
+                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">
+                        Extracted Facts & Verbatim Quotes
+                    </div>
+                    <div class="evidence-list" id="evidenceList">
+                        <div style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; padding: 1.25rem;">
+                            No facts synthesized yet. Run investigation to parse source documents.
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Human In The Loop (HITL) Adjudication -->
+                <div class="hitl-box" id="hitlBox">
+                    <div class="hitl-title">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
+                        </svg>
+                        <span>Human-in-the-Loop Adjudication</span>
+                    </div>
+                    <div class="hitl-desc">
+                        Enforced for settlements exceeding $150 threshold, claim denials, and flagged discrepancies.
+                    </div>
+                    <textarea id="humanNotesInput" placeholder="Adjudicator rationale or settlement notes..." style="width: 100%; margin-top: 0.65rem; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.5rem; color: #fff; font-family: var(--font-sans); font-size: 0.74rem; resize: vertical; height: 42px;"></textarea>
+                    <div class="hitl-actions">
+                        <button class="btn-action btn-approve" onclick="adjudicate('APPROVED')">
+                            ✔ Approve Payout
+                        </button>
+                        <button class="btn-action btn-reject" onclick="adjudicate('REJECTED')">
+                            ✖ Reject Claim
+                        </button>
+                        <button class="btn-action btn-info" onclick="adjudicate('INFO_REQUESTED')">
+                            ✉ Request Info
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Cryptographic Audit Trail -->
+                <div>
+                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">
+                        Cryptographic Tamper-Evident Ledger
+                    </div>
+                    <div class="audit-trail" id="auditTrail">
+                        <div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; padding: 1rem;">
+                            Audit ledger initializing...
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+        </section>
+
+        <!-- Collapsible Technical Console -->
+        <section class="tech-details">
+            <button class="tech-toggle" id="techToggle" onclick="toggleTechDetails()">
+                <span class="tech-toggle-icon">▶</span>
+                <span>Technical Console — Blackboard Shared Memory, A2A Messages, MCP, ADK/CrewAI</span>
+                <div class="tech-toggle-badges">
+                    <span class="tech-badge" style="background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3);">MCP 2.x</span>
+                    <span class="tech-badge" style="background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3);">CrewAI Adapter</span>
+                </div>
+            </button>
+            <div class="tech-content" id="techContent">
+                
+                <!-- Telemetry Metrics Bar -->
+                <div class="tech-metrics-bar">
+                    <div>
+                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Execution Latency</div>
+                        <div id="metricLatency" style="font-size: 1.15rem; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono);">-- ms</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Tools Executed</div>
+                        <div id="metricTools" style="font-size: 1.15rem; font-weight: 800; color: #fff; font-family: var(--font-mono);">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Adaptive Replans</div>
+                        <div id="metricReplans" style="font-size: 1.15rem; font-weight: 800; color: var(--status-amber); font-family: var(--font-mono);">0</div>
+                    </div>
+                    <div>
+                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Blackboard Facts</div>
+                        <div id="metricFacts" style="font-size: 1.15rem; font-weight: 800; color: var(--status-green); font-family: var(--font-mono);">0</div>
+                    </div>
+                </div>
+
+                <!-- Blackboard Facts + A2A Message Bus -->
+                <div class="tech-split">
+                    <div>
+                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem; display: flex; justify-content: space-between;">
+                            <span>Blackboard Working Memory</span>
+                            <span id="factCountBadge" style="font-family: var(--font-mono); color: var(--accent-cyan);">0 Facts</span>
+                        </div>
+                        <div id="blackboardFactsContainer" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.6rem; font-size: 0.72rem; font-family: var(--font-mono);">
+                            <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No facts in working memory.</div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem; display: flex; justify-content: space-between;">
+                            <span>Agent-to-Agent (A2A) Message Bus</span>
+                            <span id="a2aCountBadge" style="font-family: var(--font-mono); color: var(--status-indigo);">0 Messages</span>
+                        </div>
+                        <div id="a2aMessagesContainer" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.6rem; font-size: 0.72rem; font-family: var(--font-mono);">
+                            <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No A2A messages exchanged yet.</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Multi-Agent Framework Actions -->
+                <div style="margin-top: 1.25rem; text-align: center;">
+                    <button class="btn-action" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.75rem; background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.82rem;" onclick="runCrewAIWorkflow()">
+                        ⚡ Run CrewAI Collaborative Multi-Agent Workflow
+                    </button>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- ==========================================================================
+       JAVASCRIPT LOGIC & 3D EVIDENCE CORE ENGINE
+       ========================================================================== -->
+    <script>
+        // State
+        let currentScenario = 'scenario_1_valid';
+        let currentClaimId = 'CLM-2024-001';
+        let currentDocs = {};
+        let activeInvestigationState = null;
+
+        // ==========================================================================
+        // 3D EVIDENCE CORE ENGINE (Pure Canvas Mathematics, Zero Heavy Dependencies)
+        // ==========================================================================
+        class EvidenceCoreEngine {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                if (!this.canvas) return;
+                this.ctx = this.canvas.getContext('2d');
+                this.wrapper = this.canvas.parentElement;
+                
+                // Rotational physics & smooth lerp
+                this.rotX = 0.25;
+                this.rotY = 0.35;
+                this.targetRotX = 0.25;
+                this.targetRotY = 0.35;
+                this.baseSpeed = 0.004;
+                
+                // Mouse interaction
+                this.mouseX = 0;
+                this.mouseY = 0;
+                this.isHovered = false;
+
+                // Investigation Evidence Nodes (Connected to Real Backend Data)
+                this.nodes = [
+                    { id: 'docs', label: 'SOURCE DOSSIER', angle: 0, radius: 105, tilt: 0.3, state: 'idle' },
+                    { id: 'rules', label: 'WARRANTY RULES', angle: 1.25, radius: 115, tilt: -0.4, state: 'idle' },
+                    { id: 'math', label: 'SETTLEMENT MATH', angle: 2.5, radius: 110, tilt: 0.6, state: 'idle' },
+                    { id: 'anomaly', label: 'ANOMALY CHECKS', angle: 3.75, radius: 120, tilt: -0.2, state: 'idle' },
+                    { id: 'verifier', label: 'DUAL-GATE GATEWAY', angle: 5.0, radius: 110, tilt: 0.5, state: 'idle' }
+                ];
+
+                this.initListeners();
+                this.resize();
+                this.animate = this.animate.bind(this);
+                requestAnimationFrame(this.animate);
+            }
+
+            initListeners() {
+                window.addEventListener('resize', () => this.resize());
+
+                const chamber = document.getElementById('evidenceCoreChamber');
+                if (chamber) {
+                    chamber.addEventListener('mousemove', (e) => {
+                        const rect = chamber.getBoundingClientRect();
+                        const x = (e.clientX - rect.left) / rect.width - 0.5;
+                        const y = (e.clientY - rect.top) / rect.height - 0.5;
+                        this.targetRotY = x * 1.5;
+                        this.targetRotX = -y * 1.5;
+                    });
+
+                    chamber.addEventListener('mouseleave', () => {
+                        this.targetRotX = 0.25;
+                        this.targetRotY = 0.35;
+                    });
+                }
+            }
+
+            resize() {
+                if (!this.canvas || !this.wrapper) return;
+                const dpr = window.devicePixelRatio || 1;
+                const rect = this.wrapper.getBoundingClientRect();
+                this.width = rect.width;
+                this.height = rect.height;
+                this.canvas.width = this.width * dpr;
+                this.canvas.height = this.height * dpr;
+                this.ctx.scale(dpr, dpr);
+            }
+
+            // Update node states based on actual backend investigation data
+            updateRealDataState(state) {
+                if (!state) {
+                    this.nodes.forEach(n => n.state = 'idle');
+                    document.getElementById('hudCoreStatus').innerText = 'STANDBY';
+                    document.getElementById('hudCoreStatus').style.color = 'var(--text-secondary)';
+                    return;
+                }
+
+                // Node 0: Dossier
+                const evCount = Object.keys(state.evidence || {}).length;
+                this.nodes[0].state = evCount > 0 ? 'verified' : 'idle';
+
+                // Node 1: Warranty Rules
+                const isRejected = state.status && state.status.includes('REJECTED');
+                this.nodes[1].state = isRejected ? 'failed' : 'verified';
+
+                // Node 2: Settlement Math
+                this.nodes[2].state = state.deterministic_settlement ? 'verified' : (isRejected ? 'failed' : 'idle');
+
+                // Node 3: Anomaly / Conflict
+                const hasConflicts = (state.conflicts && state.conflicts.length > 0) || (state.status && state.status.includes('CONFLICT'));
+                this.nodes[3].state = hasConflicts ? 'failed' : 'verified';
+
+                // Node 4: Verifier
+                const rep = state.verifier_report;
+                if (rep && rep.is_approved_by_verifier) {
+                    this.nodes[4].state = 'verified';
+                } else if (rep && !rep.is_approved_by_verifier) {
+                    this.nodes[4].state = 'failed';
+                } else {
+                    this.nodes[4].state = hasConflicts ? 'escalated' : 'idle';
+                }
+
+                const hudStatus = document.getElementById('hudCoreStatus');
+                if (hudStatus) {
+                    if (state.status.includes('VERIFIED')) {
+                        hudStatus.innerText = 'VERIFIED';
+                        hudStatus.style.color = 'var(--status-green)';
+                    } else if (state.status.includes('REJECTED')) {
+                        hudStatus.innerText = 'REJECTED';
+                        hudStatus.style.color = 'var(--status-red)';
+                    } else if (state.status.includes('CONFLICT')) {
+                        hudStatus.innerText = 'ESCALATED';
+                        hudStatus.style.color = 'var(--status-amber)';
+                    }
+                }
+            }
+
+            // Project 3D coordinate (x, y, z) into 2D canvas space with perspective
+            project(x, y, z) {
+                // Apply rotation around X and Y
+                const cosY = Math.cos(this.rotY);
+                const sinY = Math.sin(this.rotY);
+                const cosX = Math.cos(this.rotX);
+                const sinX = Math.sin(this.rotX);
+
+                // Y-axis rotation
+                let x1 = x * cosY - z * sinY;
+                let z1 = z * cosY + x * sinY;
+
+                // X-axis rotation
+                let y2 = y * cosX - z1 * sinX;
+                let z2 = z1 * cosX + y * sinX;
+
+                // Perspective projection
+                const fov = 340;
+                const cameraDist = 320;
+                const scale = fov / (cameraDist + z2);
+                
+                const projX = this.width / 2 + x1 * scale;
+                const projY = this.height / 2 + y2 * scale;
+
+                return { x: projX, y: projY, scale, z: z2 };
+            }
+
+            drawOrbitalRing(radius, tiltAngle, phase, color, lineWidth = 1) {
+                const steps = 60;
+                this.ctx.beginPath();
+                for (let i = 0; i <= steps; i++) {
+                    const theta = (i / steps) * Math.PI * 2;
+                    const x = Math.cos(theta) * radius;
+                    const y = Math.sin(theta) * radius * Math.cos(tiltAngle);
+                    const z = Math.sin(theta) * radius * Math.sin(tiltAngle);
+                    const p = this.project(x, y, z);
+                    if (i === 0) this.ctx.moveTo(p.x, p.y);
+                    else this.ctx.lineTo(p.x, p.y);
+                }
+                this.ctx.strokeStyle = color;
+                this.ctx.lineWidth = lineWidth;
+                this.ctx.stroke();
+            }
+
+            animate() {
+                // Interpolate rotations smoothly
+                this.rotX += (this.targetRotX - this.rotX) * 0.05;
+                this.rotY += (this.targetRotY - this.rotY) * 0.05;
+                this.rotY += this.baseSpeed;
+
+                this.ctx.clearRect(0, 0, this.width, this.height);
+
+                const cx = this.width / 2;
+                const cy = this.height / 2;
+
+                // Draw central radiant glow
+                const grad = this.ctx.createRadialGradient(cx, cy, 5, cx, cy, 95);
+                grad.addColorStop(0, 'rgba(103, 221, 245, 0.35)');
+                grad.addColorStop(0.5, 'rgba(103, 221, 245, 0.08)');
+                grad.addColorStop(1, 'transparent');
+                this.ctx.fillStyle = grad;
+                this.ctx.beginPath();
+                this.ctx.arc(cx, cy, 95, 0, Math.PI * 2);
+                this.ctx.fill();
+
+                // Draw 3 dimensional orbital rings
+                this.drawOrbitalRing(75, 0.4, 0, 'rgba(103, 221, 245, 0.3)', 1.2);
+                this.drawOrbitalRing(85, -0.6, 0.5, 'rgba(129, 140, 248, 0.22)', 1.0);
+                this.drawOrbitalRing(65, 1.2, 1.0, 'rgba(103, 221, 245, 0.18)', 0.8);
+
+                // Central Core Sphere
+                const coreProj = this.project(0, 0, 0);
+                this.ctx.beginPath();
+                this.ctx.arc(coreProj.x, coreProj.y, 14 * coreProj.scale, 0, Math.PI * 2);
+                this.ctx.fillStyle = '#67DDF5';
+                this.ctx.shadowColor = '#67DDF5';
+                this.ctx.shadowBlur = 18;
+                this.ctx.fill();
+                this.ctx.shadowBlur = 0;
+
+                // Sort nodes by depth (z) to render back-to-front
+                const projectedNodes = this.nodes.map(n => {
+                    const currentAngle = n.angle + this.rotY * 0.75;
+                    const x = Math.cos(currentAngle) * n.radius;
+                    const y = Math.sin(currentAngle) * n.radius * Math.sin(n.tilt);
+                    const z = Math.sin(currentAngle) * n.radius * Math.cos(n.tilt);
+                    const proj = this.project(x, y, z);
+                    return { ...n, proj };
+                }).sort((a, b) => a.proj.z - b.proj.z);
+
+                // Draw Nodes and Connecting Filaments
+                projectedNodes.forEach(node => {
+                    const p = node.proj;
+
+                    // Filament to center core
+                    this.ctx.beginPath();
+                    this.ctx.moveTo(coreProj.x, coreProj.y);
+                    this.ctx.lineTo(p.x, p.y);
+                    this.ctx.strokeStyle = 'rgba(103, 221, 245, 0.15)';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.stroke();
+
+                    // Node appearance based on real status
+                    let nodeColor = '#8996A3';
+                    let glowColor = 'rgba(137, 150, 163, 0.2)';
+                    if (node.state === 'verified') {
+                        nodeColor = '#34D399';
+                        glowColor = 'rgba(52, 211, 153, 0.4)';
+                    } else if (node.state === 'failed') {
+                        nodeColor = '#F87171';
+                        glowColor = 'rgba(248, 113, 113, 0.4)';
+                    } else if (node.state === 'escalated') {
+                        nodeColor = '#E9BD73';
+                        glowColor = 'rgba(233, 189, 115, 0.4)';
+                    }
+
+                    // Outer orbit node dot
+                    this.ctx.beginPath();
+                    this.ctx.arc(p.x, p.y, 6 * p.scale, 0, Math.PI * 2);
+                    this.ctx.fillStyle = nodeColor;
+                    this.ctx.shadowColor = glowColor;
+                    this.ctx.shadowBlur = 10;
+                    this.ctx.fill();
+                    this.ctx.shadowBlur = 0;
+
+                    // Label
+                    this.ctx.font = `600 ${Math.max(8, 9 * p.scale)}px var(--font-mono)`;
+                    this.ctx.fillStyle = p.z > 0 ? '#F2F5F7' : '#8996A3';
+                    this.ctx.fillText(node.label, p.x + 9, p.y + 3);
+                });
+
+                requestAnimationFrame(this.animate);
+            }
+        }
+
+        let evidenceEngine = null;
+
+        // ==========================================================================
+        // UI INTERACTION & BACKEND INTEGRATIONS
+        // ==========================================================================
+
+        function toggleTechDetails() {
+            const toggle = document.getElementById('techToggle');
+            const content = document.getElementById('techContent');
+            toggle.classList.toggle('open');
+            content.classList.toggle('visible');
+        }
+
+        async function loadScenarios() {
+            try {
+                const res = await fetch('/api/scenarios');
+                const scenarios = await res.json();
+                const container = document.getElementById('scenariosGrid');
+                container.innerHTML = '';
+
+                scenarios.forEach((sc) => {
+                    const card = document.createElement('div');
+                    card.className = `scenario-card ${sc.id === currentScenario ? 'active' : ''}`;
+                    card.id = `sc-card-${sc.id}`;
+                    card.onclick = () => selectScenario(sc.id);
+                    card.innerHTML = `
+                        <span class="sc-badge ${sc.badge_color}">${sc.badge}</span>
+                        <div class="sc-title">${sc.title}</div>
+                        <div class="sc-desc">${sc.summary}</div>
+                        <div class="sc-expect"><strong>Expected:</strong> ${sc.expected}</div>
+                    `;
+                    container.appendChild(card);
+                });
+
+                selectScenario(currentScenario);
+            } catch (err) {
+                console.error("Error loading scenarios:", err);
+            }
+        }
+
+        async function selectScenario(scenarioId) {
+            currentScenario = scenarioId;
+            document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
+            const card = document.getElementById(`sc-card-${scenarioId}`);
+            if (card) card.classList.add('active');
+
+            // Reset UI and Evidence Core
+            activeInvestigationState = null;
+            if (evidenceEngine) evidenceEngine.updateRealDataState(null);
+
+            document.getElementById('resultsBanner').classList.remove('visible');
+            document.getElementById('verifierCard').style.display = 'none';
+            document.getElementById('mathBox').style.display = 'none';
+            document.getElementById('stepperTimeline').innerHTML = `
+                <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 2rem;">
+                    Click <strong>"Initiate Investigation"</strong> to run the adaptive multi-agent reasoning cycle.
+                </div>
+            `;
+            document.getElementById('evidenceList').innerHTML = `
+                <div style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; padding: 1.25rem;">
+                    No facts synthesized yet. Run investigation to parse source documents.
+                </div>
+            `;
+            updateStatusPill("INITIALIZED");
+
+            try {
+                const res = await fetch(`/api/scenario/${scenarioId}/docs`);
+                const data = await res.json();
+                currentDocs = data.documents;
+                const meta = data.claim_meta;
+                currentClaimId = meta.claim_id;
+
+                document.getElementById('metaClaimId').innerText = meta.claim_id || 'N/A';
+                document.getElementById('metaPolicyId').innerText = meta.policy_id || 'N/A';
+                document.getElementById('metaClaimant').innerText = meta.claimant_name || 'N/A';
+                document.getElementById('metaIncidentDate').innerText = meta.incident_date || 'N/A';
+
+                const summaryText = document.getElementById('caseSummaryText');
+                if (scenarioId === 'scenario_1_valid') {
+                    summaryText.innerText = "Apple iPhone 15 Pro cracked screen repair claim under active TechGuard policy. Valid purchase invoice and repair receipt ready for automated verification.";
+                } else if (scenarioId === 'scenario_2_expired') {
+                    summaryText.innerText = "OmniLaptop power IC motherboard failure claimed after the 12-month coverage window expired. Deterministic warranty rule engine will evaluate expiration.";
+                } else if (scenarioId === 'scenario_3_conflict') {
+                    summaryText.innerText = "ArcticFrost Refrigerator repair bill with serial number mismatch relative to the original purchase invoice. Potential fraud / anomaly escalation scenario.";
+                }
+
+                renderDocTabs();
+                loadAuditTrail(currentClaimId);
+            } catch (err) {
+                console.error("Error loading scenario docs:", err);
+            }
+        }
+
+        function renderDocTabs() {
+            const tabsContainer = document.getElementById('docTabs');
+            tabsContainer.innerHTML = '';
+            const fileNames = Object.keys(currentDocs);
+            if (fileNames.length === 0) {
+                document.getElementById('docContent').innerText = "No documents found in claim dossier.";
+                return;
+            }
+
+            fileNames.forEach((fname, idx) => {
+                const tab = document.createElement('div');
+                tab.className = `doc-tab ${idx === 0 ? 'active' : ''}`;
+                tab.innerText = fname;
+                tab.onclick = () => {
+                    document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
+                    tab.classList.add('active');
+                    document.getElementById('docContent').innerText = currentDocs[fname];
+                };
+                tabsContainer.appendChild(tab);
+            });
+
+            document.getElementById('docContent').innerText = currentDocs[fileNames[0]];
+        }
+
+        async function runInvestigation() {
+            const btn = document.getElementById('runInvestigationBtn');
+            btn.disabled = true;
+            btn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="pulse-indicator">
+                    <circle cx="12" cy="12" r="10"></circle>
+                </svg>
+                <span>Synthesizing Evidence...</span>
+            `;
+
+            try {
+                const res = await fetch(`/api/investigate/${currentScenario}`, { method: 'POST' });
+                const data = await res.json();
+                const state = data.state;
+                const audit = data.audit_trail;
+                const blackboard = data.blackboard;
+                const monitoring = data.monitoring;
+
+                activeInvestigationState = state;
+                renderInvestigationResults(state, audit, blackboard, monitoring);
+
+                // Update 3D Evidence Core with real response data
+                if (evidenceEngine) {
+                    evidenceEngine.updateRealDataState(state);
+                }
+            } catch (err) {
+                console.error("Investigation failed:", err);
+            } finally {
+                btn.disabled = false;
+                btn.innerHTML = `
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                    </svg>
+                    <span>Re-Run Investigation</span>
+                `;
+            }
+        }
+
+        function renderInvestigationResults(state, audit, blackboard, monitoring) {
+            updateStatusPill(state.status);
+
+            // ---- Results Summary Banner ----
+            const banner = document.getElementById('resultsBanner');
+            banner.classList.add('visible');
+
+            const statusEl = document.getElementById('rStatus');
+            const statusNote = document.getElementById('rStatusNote');
+            const statusLabel = state.status.replace(/_/g, ' ');
+            statusEl.innerText = statusLabel;
+            statusEl.className = 'result-card-value';
+            
+            if (state.status.includes('VERIFIED') || state.status.includes('SETTLED')) {
+                statusEl.classList.add('approved');
+                statusNote.innerText = 'Passed independent dual-gate verification';
+            } else if (state.status.includes('REJECTED')) {
+                statusEl.classList.add('rejected');
+                statusNote.innerText = 'Deterministic policy check rejection';
+            } else if (state.status.includes('CONFLICT') || state.status.includes('ESCALATED')) {
+                statusEl.classList.add('escalated');
+                statusNote.innerText = 'Data conflict flagged for human review';
+            } else {
+                statusNote.innerText = '';
+            }
+
+            // Coverage
+            const covEl = document.getElementById('rCoverage');
+            const covNote = document.getElementById('rCoverageNote');
+            if (state.status.includes('REJECTED') && state.verifier_report && state.verifier_report.discrepancies.some(d => d.toLowerCase().includes('expired'))) {
+                covEl.innerText = 'EXPIRED';
+                covEl.className = 'result-card-value rejected';
+                covNote.innerText = 'Incident outside active warranty window';
+            } else if (state.status.includes('CONFLICT')) {
+                covEl.innerText = 'CONFLICT';
+                covEl.className = 'result-card-value escalated';
+                covNote.innerText = state.conflicts?.[0]?.substring(0, 45) || 'Discrepancy detected';
+            } else if (state.deterministic_settlement) {
+                covEl.innerText = 'ACTIVE';
+                covEl.className = 'result-card-value approved';
+                covNote.innerText = 'Incident within coverage window';
+            } else {
+                covEl.innerText = '—';
+                covEl.className = 'result-card-value';
+                covNote.innerText = '';
+            }
+
+            // Payout
+            const payEl = document.getElementById('rPayout');
+            const payNote = document.getElementById('rPayoutNote');
+            if (state.deterministic_settlement) {
+                const s = state.deterministic_settlement;
+                payEl.innerText = `$${s.approved_payout.toFixed(2)}`;
+                payEl.className = 'result-card-value approved';
+                payNote.innerText = `Cost $${s.repair_cost.toFixed(0)} − Ded $${s.deductible.toFixed(0)}`;
+            } else {
+                payEl.innerText = '$0.00';
+                payEl.className = 'result-card-value';
+                payNote.innerText = state.status.includes('REJECTED') ? 'Ineligible claim' : 'Not calculated';
+            }
+
+            // Human approval
+            const appEl = document.getElementById('rApproval');
+            const appNote = document.getElementById('rApprovalNote');
+            if (state.requires_human_approval) {
+                appEl.innerText = 'REQUIRED';
+                appEl.className = 'result-card-value escalated';
+                appNote.innerText = state.deterministic_settlement?.approved_payout >= 150 ? 'High-value threshold ≥$150' : 'Exception flag triggered';
+            } else {
+                appEl.innerText = 'OPTIONAL';
+                appEl.className = 'result-card-value approved';
+                appNote.innerText = 'Below human threshold';
+            }
+
+            // ---- Investigation Timeline ----
+            const timeline = document.getElementById('stepperTimeline');
+            timeline.innerHTML = '';
+
+            state.steps_history.forEach(step => {
+                const item = document.createElement('div');
+                item.className = 'step-item';
+                item.innerHTML = `
+                    <span class="step-pill phase-${step.phase}">${step.phase} ${step.step_num}</span>
+                    <div class="step-body">
+                        <div class="step-desc">${step.description}</div>
+                        ${step.replan_reason ? `<div style="color: var(--status-amber); font-size: 0.72rem; font-weight: 600; margin-bottom: 0.2rem;">↻ Replan: ${step.replan_reason}</div>` : ''}
+                        <div class="step-reasoning">${step.reasoning || ''}</div>
+                        ${step.tool_called ? `<div class="step-code">Tool: ${step.tool_called}</div>` : ''}
+                    </div>
+                `;
+                timeline.appendChild(item);
+            });
+
+            // ---- Evidence List ----
+            const evList = document.getElementById('evidenceList');
+            evList.innerHTML = '';
+            const evKeys = Object.keys(state.evidence || {});
+
+            if (evKeys.length === 0) {
+                evList.innerHTML = `<div style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; padding: 1.25rem;">No facts extracted.</div>`;
+            } else {
+                evKeys.forEach(k => {
+                    const item = state.evidence[k];
+                    const card = document.createElement('div');
+                    card.className = 'evidence-card';
+                    card.innerHTML = `
+                        <div class="evidence-header">
+                            <span class="ev-field">${item.field_name}</span>
+                            <span class="ev-status ${item.status.toLowerCase()}">${item.status} (${Math.round(item.confidence * 100)}%)</span>
+                        </div>
+                        <div style="font-weight: 700; color: #fff; font-size: 0.82rem;">${item.extracted_value}</div>
+                        <div class="ev-quote">"${item.raw_snippet}"</div>
+                        <div class="ev-meta">
+                            <span>Source: ${item.source_document}</span>
+                            <span>${item.evidence_id}</span>
+                        </div>
+                    `;
+                    evList.appendChild(card);
+                });
+            }
+
+            // ---- Dual-Gate Verifier ----
+            const verifierBox = document.getElementById('verifierCard');
+            verifierBox.style.display = 'block';
+            const rep = state.verifier_report;
+
+            if (rep && rep.is_approved_by_verifier) {
+                verifierBox.className = 'verifier-box';
+                document.getElementById('verifierBadge').className = 'v-badge pass';
+                document.getElementById('verifierBadge').innerText = 'PASS';
+                document.getElementById('gate1Status').innerHTML = '<span style="color: var(--status-green);">✔ Evidence Substantiated</span>';
+                document.getElementById('gate2Status').innerHTML = '<span style="color: var(--status-green);">✔ Rules & Math Confirmed</span>';
+                document.getElementById('discrepancyBox').style.display = 'none';
+            } else {
+                verifierBox.className = 'verifier-box rejected';
+                document.getElementById('verifierBadge').className = 'v-badge fail';
+                document.getElementById('verifierBadge').innerText = 'REJECTED';
+                
+                const g1 = rep ? rep.gate_1_evidence_substantiated : false;
+                const g2 = rep ? (rep.gate_2_deterministic_rules_passed && rep.gate_2_arithmetic_matches) : false;
+                
+                document.getElementById('gate1Status').innerHTML = g1 
+                    ? '<span style="color: var(--status-green);">✔ Substantiated</span>' 
+                    : '<span style="color: var(--status-red);">✖ Failed</span>';
+                document.getElementById('gate2Status').innerHTML = g2 
+                    ? '<span style="color: var(--status-green);">✔ Passed</span>' 
+                    : '<span style="color: var(--status-red);">✖ Failed</span>';
+                    
+                const discBox = document.getElementById('discrepancyBox');
+                discBox.style.display = 'block';
+                const discrepancies = rep ? rep.discrepancies : state.conflicts;
+                discBox.innerHTML = `<strong>Discrepancies Flagged:</strong><br>${discrepancies.join('<br>')}`;
+            }
+
+            // ---- Settlement Math ----
+            const mathBox = document.getElementById('mathBox');
+            if (state.deterministic_settlement) {
+                mathBox.style.display = 'block';
+                const s = state.deterministic_settlement;
+                document.getElementById('mathCost').innerText = `$${s.repair_cost.toFixed(2)}`;
+                document.getElementById('mathDeductible').innerText = `-$${s.deductible.toFixed(2)}`;
+                document.getElementById('mathDep').innerText = `-$${s.depreciation_applied.toFixed(2)}`;
+                document.getElementById('mathPayout').innerText = `$${s.approved_payout.toFixed(2)}`;
+                document.getElementById('mathExplanation').innerText = s.formula_explanation;
+            } else {
+                mathBox.style.display = 'none';
+            }
+
+            // ---- Audit Trail ----
+            renderAuditTrail(audit);
+
+            // ---- Technical Console (Blackboard & Monitoring) ----
+            if (blackboard) renderBlackboard(blackboard);
+            if (monitoring) renderMonitoring(monitoring);
+        }
+
+        function renderBlackboard(bb) {
+            if (!bb) return;
+            const factCount = bb.fact_count || Object.keys(bb.facts || {}).length || 0;
+            document.getElementById('metricFacts').innerText = factCount;
+            document.getElementById('factCountBadge').innerText = `${factCount} Facts`;
+
+            const factsContainer = document.getElementById('blackboardFactsContainer');
+            factsContainer.innerHTML = '';
+
+            const facts = bb.facts || {};
+            const factKeys = Object.keys(facts);
+            if (factKeys.length === 0) {
+                factsContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No facts in working memory.</div>`;
+            } else {
+                factKeys.forEach(k => {
+                    const f = facts[k];
+                    const valStr = typeof f.value === 'object' ? JSON.stringify(f.value) : f.value;
+                    const d = document.createElement('div');
+                    d.style.cssText = 'padding: 0.35rem 0.5rem; margin-bottom: 0.3rem; background: rgba(255,255,255,0.03); border-radius: 4px; border-left: 3px solid var(--accent-cyan); display: flex; justify-content: space-between; align-items: center;';
+                    d.innerHTML = `
+                        <div>
+                            <span style="color: var(--accent-cyan); font-weight: 700;">${k}</span>: 
+                            <span style="color: #fff;">${valStr}</span>
+                        </div>
+                        <span style="font-size: 0.6rem; color: var(--text-tertiary); background: rgba(255,255,255,0.05); padding: 0.1rem 0.35rem; border-radius: 3px;">
+                            ${f.source_agent || 'Investigator'}
+                        </span>
+                    `;
+                    factsContainer.appendChild(d);
+                });
+            }
+
+            // A2A Messages
+            const a2aContainer = document.getElementById('a2aMessagesContainer');
+            a2aContainer.innerHTML = '';
+            const msgs = bb.messages || [];
+            document.getElementById('a2aCountBadge').innerText = `${msgs.length} Messages`;
+
+            if (msgs.length === 0) {
+                a2aContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No A2A messages exchanged yet.</div>`;
+            } else {
+                msgs.forEach(m => {
+                    const d = document.createElement('div');
+                    d.style.cssText = 'padding: 0.35rem 0.5rem; margin-bottom: 0.3rem; background: rgba(129, 140, 248, 0.05); border-radius: 4px; border-left: 3px solid var(--status-indigo); font-size: 0.68rem;';
+                    d.innerHTML = `
+                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.1rem;">
+                            <span style="font-weight: 700; color: #fff;">${m.sender} ➔ ${m.receiver}</span>
+                            <span style="color: var(--status-indigo); font-weight: 700;">[${m.intent}]</span>
+                        </div>
+                        <div style="color: var(--text-secondary); font-size: 0.64rem; word-break: break-all;">${JSON.stringify(m.payload).substring(0, 80)}...</div>
+                    `;
+                    a2aContainer.appendChild(d);
+                });
+                a2aContainer.scrollTop = a2aContainer.scrollHeight;
+            }
+        }
+
+        function renderMonitoring(mon) {
+            if (!mon) return;
+            document.getElementById('metricLatency').innerText = `${(mon.avg_step_latency_ms || 12.0).toFixed(1)} ms`;
+            document.getElementById('metricTools').innerText = mon.tools_called || 0;
+            document.getElementById('metricReplans').innerText = mon.replans_triggered || 0;
+        }
+
+        async function runCrewAIWorkflow() {
+            try {
+                const res = await fetch(`/api/investigate-crew/${currentScenario}`, { method: 'POST' });
+                const data = await res.json();
+                renderBlackboard(data.blackboard);
+                if (data.crew_result) {
+                    updateStatusPill(data.crew_result.status);
+                    alert(`CrewAI Multi-Agent Workflow Completed:\nStatus: ${data.crew_result.status}\nAgents Involved: ${data.crew_result.crew_agents_involved.join(' → ')}`);
+                }
+            } catch (err) {
+                console.error("CrewAI execution error:", err);
+            }
+        }
+
+        function updateStatusPill(status) {
+            const el = document.getElementById('systemClaimStatus');
+            el.innerHTML = `<span class="status-pill status-${status}">${status.replace(/_/g, ' ')}</span>`;
+        }
+
+        async function loadAuditTrail(claimId) {
+            try {
+                const res = await fetch(`/api/audit/${claimId}`);
+                const trail = await res.json();
+                renderAuditTrail(trail);
+            } catch (err) {
+                console.error("Error loading audit:", err);
+            }
+        }
+
+        function renderAuditTrail(trail) {
+            const container = document.getElementById('auditTrail');
+            container.innerHTML = '';
+            if (!trail || trail.length === 0) {
+                container.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; padding: 1rem;">Ledger empty.</div>`;
+                return;
+            }
+
+            trail.forEach(entry => {
+                const d = document.createElement('div');
+                d.className = 'audit-entry';
+                d.innerHTML = `
+                    <div class="audit-top">
+                        <span class="audit-hash">#${entry.entry_hash || 'GENESIS'}</span>
+                        <span>${entry.timestamp ? entry.timestamp.substring(11, 19) : ''}</span>
+                    </div>
+                    <div class="audit-type">${entry.event_type}</div>
+                    <div style="color: var(--text-secondary); font-size: 0.65rem; margin-top: 0.15rem;">
+                        ${JSON.stringify(entry.details).substring(0, 85)}...
+                    </div>
+                `;
+                container.appendChild(d);
+            });
+            container.scrollTop = container.scrollHeight;
+        }
+
+        async function adjudicate(decision) {
+            const notes = document.getElementById('humanNotesInput').value;
+            try {
+                const res = await fetch(`/api/adjudicate/${currentClaimId}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ decision, notes })
+                });
+                const data = await res.json();
+                updateStatusPill(data.status);
+                renderAuditTrail(data.audit_trail);
+                
+                if (evidenceEngine && activeInvestigationState) {
+                    activeInvestigationState.status = data.status;
+                    evidenceEngine.updateRealDataState(activeInvestigationState);
+                }
+                
+                alert(`Human Adjudication Recorded: Claim is now ${data.status}`);
+            } catch (err) {
+                console.error("Adjudication failed:", err);
+            }
+        }
+
+        // Initialize application & 3D Evidence Core
+        window.addEventListener('DOMContentLoaded', () => {
+            evidenceEngine = new EvidenceCoreEngine('evidenceCoreCanvas');
+            loadScenarios();
+
+            // Cinematic Opening Sequence Dissolve
+            setTimeout(() => {
+                const intro = document.getElementById('cinematicIntro');
+                if (intro) {
+                    intro.classList.add('dissolve');
+                    setTimeout(() => intro.remove(), 700);
+                }
+            }, 1000);
+        });
+    </script>
+</body>
+</html>

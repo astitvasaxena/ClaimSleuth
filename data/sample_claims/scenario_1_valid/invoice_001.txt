@@ -1,0 +1,18 @@
+=======================================================
+               OFFICIAL RETAIL INVOICE
+=======================================================
+Store: Metro Digital Flagship Store #402
+Customer: Elena Rostova
+Invoice Number: INV-882910-US
+Purchase Date: 2024-03-15
+
+Item Description: iPhone 15 Pro 256GB Titanium
+Serial Number: APPL-IPH15-998821
+Price: $1099.00
+Tax: $87.92
+Total Paid: $1186.92
+Payment Method: VISA ending in 4402
+
+Warranty Enrolled: TechGuard Extended Smartphone Care
+Policy Number: POL-TECH-CARE-01
+=======================================================

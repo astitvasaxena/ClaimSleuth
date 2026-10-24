@@ -1,0 +1,12 @@
+=======================================================
+               HARDWARE DIAGNOSTIC REPORT
+=======================================================
+Lab: Precision Circuit Diagnostics
+Date of Test: 2024-04-14
+Technician: Alex Ramos
+
+Item: OmniLaptop Ultra 14
+Serial Number: OMNI-LT-554109
+Diagnosis: Power management IC voltage regulator blown on main motherboard. No liquid damage observed.
+Estimated Cost: $450.00 (Board level micro-soldering and IC replacement)
+=======================================================

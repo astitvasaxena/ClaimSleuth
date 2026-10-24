@@ -1,0 +1,17 @@
+=======================================================
+           AUTHORIZED SERVICE CENTER ESTIMATE
+=======================================================
+Service Provider: iFix Express Authorized Care
+Technician ID: TECH-841
+Date of Inspection: 2024-09-22
+Client: Elena Rostova
+
+Device: iPhone 15 Pro
+Serial No: APPL-IPH15-998821
+Diagnosis: Cracked front display glass from accidental impact. Internal chassis and logic board intact.
+Labor Rate: $60.00
+OLED Display Assembly: $220.00
+Estimated Cost: $280.00
+
+Technician Recommendation: Replace front display assembly.
+=======================================================
