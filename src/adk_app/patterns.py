@@ -46,10 +46,11 @@ HIDDEN_KEYS = {"bb:messages", "bb:context_stats"}
 MANAGER = "ClaimManager"
 # Peer-to-peer routing table: producer -> agents that receive its messages.
 DIRECT_ROUTES: Dict[str, List[str]] = {
-    "IntakeAgent": ["EvidenceAgent", "AnomalyAgent", "WarrantyAgent", "SettlementAgent", "ForensicsReviewAgent",
-                    "VerifierAgent", "ReportAgent", MANAGER],
-    "EvidenceAgent": ["AnomalyAgent", "WarrantyAgent", "SettlementAgent", "ForensicsReviewAgent",
-                      "VerifierAgent", "ReportAgent", MANAGER],
+    "IntakeAgent": ["EvidenceAgent", "PolicyRetrievalAgent", "AnomalyAgent", "WarrantyAgent", "SettlementAgent",
+                    "ForensicsReviewAgent", "VerifierAgent", "ReportAgent", MANAGER],
+    "EvidenceAgent": ["PolicyRetrievalAgent", "AnomalyAgent", "WarrantyAgent", "SettlementAgent",
+                      "ForensicsReviewAgent", "VerifierAgent", "ReportAgent", MANAGER],
+    "PolicyRetrievalAgent": ["VerifierAgent", "ReportAgent", MANAGER],
     "AnomalyAgent": ["ForensicsReviewAgent", "SettlementAgent", "VerifierAgent", "ReportAgent", MANAGER],
     "ForensicsReviewAgent": ["SettlementAgent", "VerifierAgent", "ReportAgent", MANAGER],
     "WarrantyAgent": ["SettlementAgent", "ReportAgent", MANAGER],
@@ -65,6 +66,7 @@ class RunOptions:
     pattern: Pattern = "sequential"
     messaging: Messaging = "blackboard"
     drop_routes: Set[Tuple[str, str]] = field(default_factory=set)   # failure injection for "direct"
+    rag: bool = True                                                  # run PolicyRetrievalAgent (RAG)
 
 
 def agent_name(step: Callable) -> str:
@@ -182,7 +184,8 @@ def merge_branch_outputs(state: Dict[str, Any], branch_agents: List[str]) -> Dic
 
 # ─── Hierarchical: manager ──────────────────────────────────────────────────
 
-def manager_decision(view: Dict[str, Any], forensics: bool, decisions: List[Dict[str, Any]]) -> Tuple[str, str]:
+def manager_decision(view: Dict[str, Any], forensics: bool, decisions: List[Dict[str, Any]],
+                     rag: bool = False) -> Tuple[str, str]:
     """The manager's delegation policy: (route, reason). Pure function of the case state."""
     done = set(view.get("bb:agent_sequence", []))
     conflicts = view.get("bb:conflicts", [])
@@ -195,6 +198,8 @@ def manager_decision(view: Dict[str, Any], forensics: bool, decisions: List[Dict
         if not view.get("bb:documents"):
             return "verify", "no documents in the dossier; nothing to investigate"
         return "evidence", "evidence not gathered yet"
+    if rag and "PolicyRetrievalAgent" not in done:
+        return "retrieval", "policy wording not retrieved yet (RAG)"
     if "AnomalyAgent" not in done:
         return "anomaly", "cross-document checks not run yet"
     if forensics and "ForensicsReviewAgent" not in done:
@@ -211,11 +216,12 @@ def manager_decision(view: Dict[str, Any], forensics: bool, decisions: List[Dict
 
 
 def _manager_node(opts: RunOptions, forensics: bool) -> FunctionNode:
+    rag = opts.rag
     async def claim_manager(ctx):
         state = ctx.state.to_dict()
         view, stats = build_view(state, MANAGER, opts)
         decisions = list(state.get("bb:manager_decisions", []))
-        route, reason = manager_decision(view, forensics, decisions)
+        route, reason = manager_decision(view, forensics, decisions, rag)
         decisions.append({"n": len(decisions) + 1, "route": route, "reason": reason, "at_ms": _elapsed_ms(state)})
         ctx.state["bb:manager_decisions"] = decisions
         ctx.state["bb:context_stats"] = list(state.get("bb:context_stats", [])) + [stats]
@@ -260,8 +266,9 @@ def build_pattern_workflow(opts: RunOptions, make_gateway: GatewayFactory,
     gather = model_agent if model_agent is not None else node(steps.evidence_agent)
     tail = [node(steps.settlement_agent), node(steps.verifier_agent), node(steps.report_agent)]
 
+    retrieval = [node(steps.policy_retrieval_agent)] if opts.rag else []
     if opts.pattern == "sequential":
-        chain = [node(steps.intake_agent), gather, node(steps.anomaly_agent)]
+        chain = [node(steps.intake_agent), gather, *retrieval, node(steps.anomaly_agent)]
         if forensics_agent is not None:
             chain += [forensics_agent, node(steps.forensics_review_agent)]
         chain += [node(steps.warranty_agent)] + tail
@@ -269,9 +276,11 @@ def build_pattern_workflow(opts: RunOptions, make_gateway: GatewayFactory,
 
     if opts.pattern == "parallel":
         branches = [node(steps.anomaly_agent, True), node(steps.warranty_agent, True)]
+        if opts.rag:
+            branches.append(node(steps.policy_retrieval_agent, True))
         if forensics_agent is not None:
             branches.append(forensics_agent)
-        merge = _merge_node(["AnomalyAgent", "WarrantyAgent"])
+        merge = _merge_node(["AnomalyAgent", "WarrantyAgent"] + (["PolicyRetrievalAgent"] if opts.rag else []))
         chain = [node(steps.intake_agent), gather, tuple(branches), JoinNode(name="ParallelJoin"), merge]
         if forensics_agent is not None:
             chain.append(node(steps.forensics_review_agent))
@@ -281,6 +290,8 @@ def build_pattern_workflow(opts: RunOptions, make_gateway: GatewayFactory,
         manager = _manager_node(opts, forensics_agent is not None)
         workers = {"evidence": gather, "anomaly": node(steps.anomaly_agent),
                    "warranty": node(steps.warranty_agent), "settlement": node(steps.settlement_agent)}
+        if opts.rag:
+            workers["retrieval"] = node(steps.policy_retrieval_agent)
         verifier, report = node(steps.verifier_agent), node(steps.report_agent)
         routes: Dict[str, Any] = {**workers, "verify": verifier}
         edges = [(START, node(steps.intake_agent), manager)]

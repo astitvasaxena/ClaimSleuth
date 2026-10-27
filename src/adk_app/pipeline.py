@@ -64,7 +64,8 @@ from src.adk_app.report import FinalReport
 from src.adk_app.tool_gateway import (
     LocalTools, McpConfig, McpTools, MCPUnavailableError, ToolCallError, build_mcp_toolset, unwrap_mcp_result,
 )
-from src.adk_app.tools import MODEL_TOOLS, instruction_provider, investigator_instruction, record_model_payout_claim
+from src.adk_app.tools import (MODEL_TOOLS, instruction_provider, investigator_instruction, record_model_payout_claim,
+                               search_policy_documents)
 from google.adk.models.llm_response import LlmResponse
 from src.core.guardrails import evaluate_claim, redact_toxicity, scan_injection, scan_toxicity
 from src.tools.evidence_store import EvidenceStore
@@ -77,7 +78,8 @@ APP_NAME = "claimsleuth"
 
 
 
-def pipeline_chain(model_agent: Optional[LlmAgent] = None, forensics_agent: Optional[BaseAgent] = None) -> list:
+def pipeline_chain(model_agent: Optional[LlmAgent] = None, forensics_agent: Optional[BaseAgent] = None,
+                   rag: bool = True) -> list:
     """
     The ordered pipeline. Items are step functions (deterministic agents) or ADK agents.
     - model mode: the InvestigatorLLM replaces EvidenceAgent;
@@ -85,8 +87,10 @@ def pipeline_chain(model_agent: Optional[LlmAgent] = None, forensics_agent: Opti
       ForensicsReviewAgent run after AnomalyAgent.
     Every check after evidence gathering stays deterministic.
     """
-    chain = [steps.intake_agent, model_agent if model_agent is not None else steps.evidence_agent,
-             steps.anomaly_agent]
+    chain = [steps.intake_agent, model_agent if model_agent is not None else steps.evidence_agent]
+    if rag:
+        chain.append(steps.policy_retrieval_agent)
+    chain.append(steps.anomaly_agent)
     if forensics_agent is not None:
         chain += [forensics_agent, steps.forensics_review_agent]
     return chain + [steps.warranty_agent, steps.settlement_agent, steps.verifier_agent, steps.report_agent]
@@ -242,7 +246,7 @@ def _build_model_agent(model: Union[str, BaseLlm], model_toolset=None, prompt_va
         return LlmAgent(instruction=instruction_provider(prompt_variant), tools=MODEL_TOOLS,
                         after_tool_callback=_type_check_tool_result, **common)
     return LlmAgent(instruction=instruction_provider(prompt_variant, mcp=True),
-                    tools=[model_toolset, record_model_payout_claim],
+                    tools=[model_toolset, record_model_payout_claim, search_policy_documents],
                     before_tool_callback=_guard_mcp_tool, after_tool_callback=_merge_mcp_result, **common)
 
 
@@ -334,7 +338,7 @@ async def _run_async(claim: Dict[str, Any], backend: Backend, model: Optional[Un
         if backend == "workflow":
             root = build_pattern_workflow(opts, make_gateway, model_agent, forensics_agent)
         else:
-            root = _build_sequential(pipeline_chain(model_agent, forensics_agent), make_gateway, opts)
+            root = _build_sequential(pipeline_chain(model_agent, forensics_agent, opts.rag), make_gateway, opts)
         backend_label = "workflow" if backend == "workflow" else "sequential_agent"
 
         session_service = InMemorySessionService()
@@ -347,7 +351,7 @@ async def _run_async(claim: Dict[str, Any], backend: Backend, model: Optional[Un
                    "bb:run": {"run_id": run_id, "trace_id": CURRENT_TRACE_ID.get(),
                               "backend": backend_label, "planner": planner,
                               "tool_backend": tool_label, "t0": time.perf_counter(),
-                              "pattern": opts.pattern, "messaging": opts.messaging,
+                              "pattern": opts.pattern, "messaging": opts.messaging, "rag": opts.rag,
                               "forensics": f"crewai_a2a@{a2a_url}" if forensics == "crewai_a2a" else "none"}})
 
         # The model only ever sees the guardrail-sanitised claim (toxic words redacted)
@@ -383,7 +387,7 @@ def run_adk_investigation(claim: Dict[str, Any], backend: Backend = "workflow",
                           mcp: Optional[McpConfig] = None, forensics: str = "none",
                           a2a_url: Optional[str] = None, a2a_timeout: float = 120.0,
                           pattern: str = "sequential", messaging: str = "blackboard",
-                          drop_routes=None, prompt_variant: str = "baseline") -> AdkRunResult:
+                          drop_routes=None, prompt_variant: str = "baseline", rag: bool = True) -> AdkRunResult:
     """
     Run one claim through the ADK pipeline and return the FinalReport plus trace.
     - If a model run fails (network, quota, bad output) and fallback is allowed, the
@@ -404,7 +408,7 @@ def run_adk_investigation(claim: Dict[str, Any], backend: Backend = "workflow",
         raise ValueError(f"Unknown messaging mode '{messaging}'")
     if backend == "sequential" and pattern != "sequential":
         raise ValueError("The deprecated SequentialAgent backend supports only pattern='sequential'")
-    opts = RunOptions(pattern=pattern, messaging=messaging, drop_routes=set(drop_routes or ()))
+    opts = RunOptions(pattern=pattern, messaging=messaging, drop_routes=set(drop_routes or ()), rag=rag)
     mcp = mcp or McpConfig()
     resolved = resolve_model(model, use_llm)
     run_id = f"adk-{uuid.uuid4().hex[:10]}"

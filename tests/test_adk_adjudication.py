@@ -147,7 +147,7 @@ class TestEngineInterplayAndCompatibility(AdkAdjudicationBase):
         self.assertTrue(LEGACY_KEYS - {"mcp_tools"} <= set(data))
         steps = data["state"]["steps_history"]
         self.assertEqual([s["description"].split(" ")[0] for s in steps],
-                         ["IntakeAgent", "EvidenceAgent", "AnomalyAgent", "WarrantyAgent",
+                         ["IntakeAgent", "EvidenceAgent", "PolicyRetrievalAgent", "AnomalyAgent", "WarrantyAgent",
                           "SettlementAgent", "VerifierAgent", "ReportAgent"])
         self.assertEqual(steps[-1]["phase"], "STOP")
         self.assertIn("bb:conflicts", data["blackboard"]["facts"])

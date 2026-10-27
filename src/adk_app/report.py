@@ -73,6 +73,10 @@ class FinalReport(BaseModel):
     agent_metrics: Dict[str, Dict[str, Any]] = Field(default_factory=dict)  # per agent: latency, tools, errors, tokens
     errors: List[Dict[str, Any]] = Field(default_factory=list)              # structured: agent, kind, message
     guardrail: Optional[Dict[str, Any]] = None
+    # RAG (src/rag/): retrieved passages are untrusted evidence with real source references
+    rag: Optional[Dict[str, Any]] = None                                  # retriever, warnings, errors, stated terms
+    policy_citations: Dict[str, Dict[str, Any]] = Field(default_factory=dict)   # topic -> file, section, quote, score
+    retrieved_evidence: List[Dict[str, Any]] = Field(default_factory=list)      # every passage used (or quarantined)
     agent_sequence: List[str] = Field(default_factory=list)
     audit_chain_valid: bool
     # Filled only after a human decision via /api/adjudicate (written as a separate *_adjudicated file)
@@ -140,6 +144,21 @@ def to_markdown(report: FinalReport) -> str:
             lines += [f"- {f['check']}: {f['result']} ({f['detail']})" for f in report.forensics["findings"]]
         else:
             lines.append("- No valid forensics report (see tool errors)")
+    if report.rag is not None:
+        lines += ["", "## Policy evidence retrieved (RAG)", "",
+                  f"- Retriever: {report.rag.get('retriever') or '—'}"
+                  + (f"; ERROR: {report.rag['error']}" if report.rag.get("error") else "")]
+        if report.policy_citations:
+            lines += ["", "| Topic | Source | Section | Quote | Score |", "|---|---|---|---|---|"]
+            for topic, c in report.policy_citations.items():
+                quote = c["quote"].replace("|", "\\|")[:160]
+                lines.append(f"| {topic} | `{c['source_file']}` | {c['section']} | {quote} | {c['score']:.2f} |")
+        if report.rag.get("missing_citations"):
+            lines.append(f"- No wording found for: {', '.join(report.rag['missing_citations'])}")
+        quarantined = [p for p in report.retrieved_evidence if p.get("quarantined")]
+        if quarantined:
+            lines.append(f"- Quarantined passages (instruction-like text, not used): "
+                         + ", ".join(f"`{p['source_file']}` §{p['section']}" for p in quarantined))
     lines += ["", "## Agent sequence", "", " → ".join(report.agent_sequence), ""]
     if report.manager_decisions:
         lines += ["## Manager decisions (hierarchical)", ""]

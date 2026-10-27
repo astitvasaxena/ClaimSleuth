@@ -35,6 +35,7 @@ $RECYCLE.BIN/
 
 # Runtime artifacts (audit ledgers written by the running app)
 data/runtime/
+data/rag/index/
 
 # Machine-specific helper scripts
 powershell.bat

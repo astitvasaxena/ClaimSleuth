@@ -25,6 +25,7 @@ Blackboard keys
   bb:tool_errors         tool failures; any entry makes the VerifierAgent fail closed
   bb:forensics_raw / bb:forensics_error / bb:a2a_call   CrewAI reply over A2A (forensics mode)
   bb:forensics           validated ForensicsReport from CrewAI, or None
+  bb:rag                 RAG: retrieved passages with source refs, policy citations, stated terms
   bb:verifier            VerifierReport dict
   bb:status / bb:requires_human_approval / bb:payout
   bb:final_report / bb:report_files
@@ -43,6 +44,8 @@ from src.verifier.independent_verifier import DualGateVerifier
 from src.adk_app.tool_gateway import ToolCallError
 from src.core.forensics_schema import FORENSICS_JSON_PREFIX, ForensicsReport
 from src.core.guardrails import evaluate_claim
+from src.rag.policy_evidence import check_policy_citations, gather_policy_evidence
+import asyncio
 
 REQUIRED_FIELDS = ["purchase_date", "serial_number", "repair_cost"]
 INVOICE_FIELDS = ["purchase_date", "serial_number"]
@@ -247,6 +250,34 @@ async def forensics_review_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any
             "bb:tool_errors": tool_errors, "bb:agent_sequence": sequence}
 
 
+async def policy_retrieval_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any]:
+    """
+    RAG: retrieve the policy wording (and the claim's own document passages) relevant to this
+    claim, with source references. Writes bb:rag. Retrieval failures are recorded, never
+    papered over; the VerifierAgent decides whether they block a settlement.
+    """
+    claim = s["bb:claim"]
+    evidence = s.get("bb:evidence", {})
+    cause = str((evidence.get("incident_cause") or {}).get("extracted_value") or claim.get("reported_issue", ""))
+    if s.get("bb:policy") is None:
+        rag = {"error": f"unknown policy {claim.get('policy_id')}: nothing to retrieve", "citations": {},
+               "stated_terms": {}, "missing_citations": [], "passages": [], "quarantined": [], "warnings": []}
+    else:
+        try:
+            documents = EvidenceStore().get_all_claim_documents(claim["claim_id"])
+            rag = await asyncio.to_thread(gather_policy_evidence, claim, cause, documents)
+        except Exception as exc:   # index or model failure: record it, invent nothing
+            rag = {"error": f"retrieval failed: {type(exc).__name__}: {str(exc)[:200]}", "citations": {},
+                   "stated_terms": {}, "missing_citations": [], "passages": [], "quarantined": [], "warnings": []}
+    audit = _audit(s, "PolicyRetrievalAgent",
+                   f"retriever={rag.get('retriever')} citations={sorted(rag['citations'])} "
+                   f"passages={len(rag['passages'])} quarantined={len(rag['quarantined'])} error={rag.get('error')}",
+                   "rag_retrieve")
+    for q in rag["quarantined"]:
+        audit.log_conflict(f"RAG passage quarantined (instruction-like text): {q['source_file']} §{q['section']}")
+    return {"bb:rag": rag, "bb:agent_sequence": _sequence(s, "PolicyRetrievalAgent")}
+
+
 async def warranty_agent(s: Dict[str, Any], tools) -> Dict[str, Any]:
     """Coverage window and exclusions (deterministic policy rules)."""
     claim, policy, evidence = s["bb:claim"], s.get("bb:policy"), s.get("bb:evidence", {})
@@ -366,6 +397,25 @@ async def verifier_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any]:
             audit.log_conflict(mismatch)
             report = DualGateVerifier().verify_investigation(state, policy)
 
+    # RAG check: the retrieved policy wording must agree with the terms used for the money.
+    rag = s.get("bb:rag")
+    if rag is None and s["bb:run"].get("rag"):   # RAG was on but its evidence never arrived: fail closed
+        rag = {"error": "policy wording evidence did not reach the verifier", "citations": {}, "stated_terms": {},
+               "missing_citations": [], "quarantined": []}
+    if rag is not None and policy is not None:
+        check = check_policy_citations(rag, policy)
+        for conflict in check["conflicts"]:
+            if conflict not in state.conflicts:
+                state.conflicts.append(conflict)
+                audit.log_conflict(conflict)
+        if check["conflicts"]:
+            report = DualGateVerifier().verify_investigation(state, policy)
+        if state.deterministic_settlement is not None and (rag.get("error") or check["missing"]):
+            reason = rag.get("error") or f"no retrieved policy wording for {check['missing']}"
+            report.is_approved_by_verifier = False
+            report.gate_1_evidence_substantiated = False
+            report.discrepancies.append(f"Missing policy wording citation: {reason}")
+
     tool_errors = list(s.get("bb:tool_errors", []))
     if tool_errors:
         report.is_approved_by_verifier = False
@@ -480,6 +530,13 @@ async def report_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any]:
         risk_flags.append("TOOL_RESULT_MISMATCH")
     if s.get("bb:tool_errors"):
         risk_flags.append("TOOL_ERROR")
+    rag = s.get("bb:rag") or {}
+    if rag.get("quarantined"):
+        risk_flags.append("RAG_PASSAGE_QUARANTINED")
+    if any("Policy wording (" in c for c in s.get("bb:conflicts", [])):
+        risk_flags.append("POLICY_WORDING_MISMATCH")
+    if any("Missing policy wording citation" in d for d in (s.get("bb:verifier") or {}).get("discrepancies", [])):
+        risk_flags.append("RAG_CITATION_MISSING")
     if any("Agent disagreement" in c for c in s.get("bb:conflicts", [])):
         risk_flags.append("AGENT_DISAGREEMENT")
     if any("Invalid CrewAI forensics report" in e for e in s.get("bb:tool_errors", [])):
@@ -523,6 +580,11 @@ async def report_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any]:
         agent_timings=s.get("bb:agent_timings", []), manager_decisions=s.get("bb:manager_decisions", []),
         messaging_summary=_messaging_summary(s),
         trace_id=run.get("trace_id"), guardrail=s.get("bb:guardrail"),
+        rag=({k: rag.get(k) for k in ("retriever", "error", "warnings", "missing_citations", "stated_terms")}
+             if rag else None),
+        policy_citations=rag.get("citations", {}) if rag else {},
+        retrieved_evidence=(rag.get("passages", []) + [{**q, "quarantined": True} for q in rag.get("quarantined", [])])
+        if rag else [],
         agent_metrics=_agent_metrics(s, sequence), errors=_errors(s),
         audit_chain_valid=AuditLogger(claim["claim_id"]).verify_chain()["valid"],
     )

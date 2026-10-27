@@ -33,6 +33,9 @@ AUDIT_LOG_DIR = Path(os.environ.get("CLAIMSLEUTH_AUDIT_LOG_DIR", DATA_DIR / "run
 REPORTS_DIR = Path(os.environ.get("CLAIMSLEUTH_REPORTS_DIR", DATA_DIR / "runtime" / "reports"))
 # OpenTelemetry span files, one JSONL file per trace id (gitignored).
 TRACES_DIR = Path(os.environ.get("CLAIMSLEUTH_TRACES_DIR", DATA_DIR / "runtime" / "traces"))
+# RAG: policy wording documents (committed) and the generated vector index (gitignored)
+RAG_CORPUS_DIR = Path(os.environ.get("CLAIMSLEUTH_RAG_CORPUS_DIR", DATA_DIR / "rag" / "policies"))
+RAG_INDEX_DIR = Path(os.environ.get("CLAIMSLEUTH_RAG_INDEX_DIR", DATA_DIR / "rag" / "index"))
 # Ledgers committed in 850d757, written by the pre-fix logger (chain restarted at
 # GENESIS on every run). Preserved unchanged as evidence; never written to.
 LEGACY_AUDIT_LOG_DIR = DATA_DIR / "audit_logs"

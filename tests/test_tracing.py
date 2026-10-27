@@ -80,7 +80,8 @@ class TestPerAgentMetricsAndErrors(unittest.TestCase):
     def test_metrics_are_measured_not_invented(self):
         report = run_adk_investigation(load_claim("scenario_1_valid"), tools="mcp").report
         m = report.agent_metrics
-        self.assertEqual(set(m) - {"ReportAgent"}, {"IntakeAgent", "EvidenceAgent", "AnomalyAgent", "WarrantyAgent",
+        self.assertEqual(set(m) - {"ReportAgent"}, {"IntakeAgent", "EvidenceAgent", "PolicyRetrievalAgent",
+                                                    "AnomalyAgent", "WarrantyAgent",
                                                     "SettlementAgent", "VerifierAgent"})
         self.assertTrue(all(m[a]["latency_ms"] is not None for a in m if a != "ReportAgent"))
         self.assertEqual(sum(v["tool_calls"] for v in m.values()), len(report.tool_calls))

@@ -46,6 +46,7 @@ What actually runs today. `GET /api/runtime-status` reports the same thing from 
 | MCP | **Remote server over stdio and streamable HTTP** (`src/mcp/remote_server.py`, 6 tools). The ADK pipeline uses it through ADK's `McpToolset` with `tools=mcp_stdio|mcp_http` (verified with a server-side call log). The original loop still calls the legacy server **in-process**. No authentication: localhost only. |
 | Google ADK | **Executed** via `POST /api/adk/investigate/{scenario}` (real `Runner` + session state; `Workflow` and `SequentialAgent` backends), selectable in the dashboard; results go through the same human-adjudication rules. The dashboard's default engine is still the original loop. |
 | CrewAI | **Real `crewai` 1.15.30** in a separate environment (`.venv-crewai`): a CrewAI `Flow` runs the forensic checks and an optional CrewAI `Crew` writes a narrative (tested with a fake LLM only). Used via `?forensics=crewai_a2a`. The old `/api/investigate-crew` endpoint is still a placeholder that does not use crewai. |
+| RAG | **Local retrieval over policy wording + claim documents** (`src/rag/`, all-MiniLM-L6-v2 embeddings, exact NumPy index, labelled TF-IDF fallback). `PolicyRetrievalAgent` runs in all three ADK patterns; the verifier cross-checks the cited wording against the terms used for the money and escalates or blocks on mismatch, injection or missing wording. RAG never sets or approves a payout. Synthetic corpus. See [docs/RAG.md](docs/RAG.md). |
 | A2A | **ADK `RemoteA2aAgent` → CrewAI service over HTTP** (a2a-sdk 1.3.0, Agent Card + JSON-RPC), verified with a service-side request log. ADK marks its A2A support experimental. No authentication: localhost only. The in-memory `A2AMessage` log in `blackboard.py` is not the protocol. |
 
 ---
@@ -64,8 +65,8 @@ python -m pytest tests/ -v
 
 `POST /api/adk/investigate/{scenario_id}?backend=workflow|sequential` runs the claim through a real
 `google.adk` `Runner` with an in-memory session. The session state is the Blackboard (`bb:*` keys,
-documented in `src/adk_app/steps.py`). Seven agents run in order: Intake, Evidence, Anomaly, Warranty,
-Settlement, Verifier and Report. Each agent calls the existing deterministic code; the verifier and the
+documented in `src/adk_app/steps.py`). Eight agents run in order: Intake, Evidence, PolicyRetrieval (RAG),
+Anomaly, Warranty, Settlement, Verifier and Report. Each agent calls the existing deterministic code; the verifier and the
 shared status/payout rules in `src/core/adjudication.py` decide the outcome. Each run writes a Pydantic
 `FinalReport` as JSON and Markdown to `data/runtime/reports/` (gitignored; override with
 `CLAIMSLEUTH_REPORTS_DIR`).

@@ -27,7 +27,7 @@ from src.core.state import ClaimInvestigationState
 
 CLAIMS_DIR = Path(__file__).resolve().parent.parent / "data" / "sample_claims"
 BACKENDS = ("workflow", "sequential")
-EXPECTED_SEQUENCE = ["IntakeAgent", "EvidenceAgent", "AnomalyAgent", "WarrantyAgent",
+EXPECTED_SEQUENCE = ["IntakeAgent", "EvidenceAgent", "PolicyRetrievalAgent", "AnomalyAgent", "WarrantyAgent",
                      "SettlementAgent", "VerifierAgent", "ReportAgent"]
 REQUIRED_KEYS = ["bb:run", "bb:claim", "bb:policy", "bb:documents", "bb:evidence", "bb:conflicts",
                  "bb:missing", "bb:anomalies", "bb:eligibility", "bb:settlement_proposal",

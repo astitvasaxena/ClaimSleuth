@@ -62,15 +62,16 @@ class TestParallelPattern(unittest.TestCase):
         self.assertIn("MergeAgent", result.report.agent_sequence)
         self.assertIsNone(result.state["bb:branch_out:AnomalyAgent"])        # applied and cleared
         branches = {t["agent"] for t in result.report.agent_timings if t["branch"]}
-        self.assertEqual(branches, {"AnomalyAgent", "WarrantyAgent"})
+        self.assertEqual(branches, {"AnomalyAgent", "WarrantyAgent", "PolicyRetrievalAgent"})
         self.assertTrue(result.report.conflicts)   # the anomaly branch's conflicts survived the merge
 
     def test_branches_cannot_see_each_other(self):
         seq = run_adk_investigation(load_claim("scenario_1_valid"), pattern="sequential").report
         par = run_adk_investigation(load_claim("scenario_1_valid"), pattern="parallel").report
-        # Sequentially, WarrantyAgent runs after AnomalyAgent and sees bb:anomalies; in a branch it must not.
+        # Sequentially, WarrantyAgent runs after PolicyRetrievalAgent and AnomalyAgent and sees bb:rag and
+        # bb:anomalies; in a branch it must see neither.
         self.assertEqual(par.messaging_summary["keys_visible_per_agent"]["WarrantyAgent"],
-                         seq.messaging_summary["keys_visible_per_agent"]["WarrantyAgent"] - 1)
+                         seq.messaging_summary["keys_visible_per_agent"]["WarrantyAgent"] - 2)
 
     def test_branches_overlap_in_time_when_waiting_on_mcp(self):
         report = run_adk_investigation(load_claim("scenario_1_valid"), pattern="parallel", tools="mcp").report
@@ -101,16 +102,16 @@ class TestHierarchicalPattern(unittest.TestCase):
         r1, d1 = self.decisions("scenario_1_valid")
         r2, d2 = self.decisions("scenario_2_expired")
         r3, d3 = self.decisions("scenario_3_conflict")
-        self.assertEqual(d1, ["evidence", "anomaly", "warranty", "settlement", "verify"])
-        self.assertEqual(d2, ["evidence", "anomaly", "warranty", "verify"])            # ineligible: no settlement
-        self.assertEqual(d3, ["evidence", "anomaly", "verify"])                        # conflict: escalate early
+        self.assertEqual(d1, ["evidence", "retrieval", "anomaly", "warranty", "settlement", "verify"])
+        self.assertEqual(d2, ["evidence", "retrieval", "anomaly", "warranty", "verify"])   # ineligible: no settlement
+        self.assertEqual(d3, ["evidence", "retrieval", "anomaly", "verify"])               # conflict: escalate early
         self.assertNotIn("SettlementAgent", r2.report.agent_sequence)
         self.assertNotIn("WarrantyAgent", r3.report.agent_sequence)
         self.assertIn("conflict", r3.report.manager_decisions[-1]["reason"])
-        # The manager node was executed three separate times (ADK numbers executions ClaimManager@1, @2, ...)
+        # The manager node was executed four separate times (ADK numbers executions ClaimManager@1, @2, ...)
         executions = {e["node_path"].split("/")[-1] for e in r3.events
                       if e["node_path"] and "/ClaimManager@" in e["node_path"]}
-        self.assertEqual(executions, {"ClaimManager@1", "ClaimManager@2", "ClaimManager@3"})
+        self.assertEqual(executions, {"ClaimManager@1", "ClaimManager@2", "ClaimManager@3", "ClaimManager@4"})
         self.assertLess(len(r3.report.tool_calls), len(r1.report.tool_calls))
 
     def test_manager_policy_units(self):
@@ -135,13 +136,13 @@ class TestMessagingArchitectures(unittest.TestCase):
     def test_delivery_counts_follow_the_architecture(self):
         bb, direct, bc = (self.summary(m).messaging_summary for m in MESSAGING)
         self.assertEqual((bb["messages_sent"], bb["deliveries"]), (0, 0))
-        self.assertEqual(direct["messages_sent"], 6)
-        self.assertEqual(bc["deliveries"], sum(range(7)))          # each agent gets every earlier message
-        expected_direct = sum(1 for producer in ("IntakeAgent", "EvidenceAgent", "AnomalyAgent", "WarrantyAgent",
-                                                 "SettlementAgent", "VerifierAgent")
+        self.assertEqual(direct["messages_sent"], 7)
+        self.assertEqual(bc["deliveries"], sum(range(8)))          # each agent gets every earlier message
+        expected_direct = sum(1 for producer in ("IntakeAgent", "EvidenceAgent", "PolicyRetrievalAgent", "AnomalyAgent",
+                                                 "WarrantyAgent", "SettlementAgent", "VerifierAgent")
                               for consumer in DIRECT_ROUTES[producer]
-                              if consumer in ("EvidenceAgent", "AnomalyAgent", "WarrantyAgent", "SettlementAgent",
-                                              "VerifierAgent", "ReportAgent"))
+                              if consumer in ("EvidenceAgent", "PolicyRetrievalAgent", "AnomalyAgent", "WarrantyAgent",
+                                              "SettlementAgent", "VerifierAgent", "ReportAgent"))
         self.assertEqual(direct["deliveries"], expected_direct)
         self.assertLess(direct["deliveries"], bc["deliveries"])
         self.assertLess(direct["context_bytes_per_agent"], bc["context_bytes_per_agent"])
@@ -165,7 +166,7 @@ class TestMessagingArchitectures(unittest.TestCase):
         report = run_adk_investigation(load_claim("scenario_3_conflict"), backend="sequential",
                                        messaging="broadcast").report
         self.assertEqual(outcome(report), EXPECTED["scenario_3_conflict"])
-        self.assertEqual(report.messaging_summary["messages_sent"], 6)
+        self.assertEqual(report.messaging_summary["messages_sent"], 7)
 
 
 class TestValidationAndFailuresPerPattern(unittest.TestCase):
@@ -211,7 +212,7 @@ class TestValidationAndFailuresPerPattern(unittest.TestCase):
         client = TestClient(importlib.reload(app_module).app)
         data = client.post("/api/adk/investigate/scenario_3_conflict?pattern=hierarchical&messaging=direct").json()
         self.assertEqual(data["report"]["pattern"], "hierarchical")
-        self.assertEqual([d["route"] for d in data["report"]["manager_decisions"]], ["evidence", "anomaly", "verify"])
+        self.assertEqual([d["route"] for d in data["report"]["manager_decisions"]], ["evidence", "retrieval", "anomaly", "verify"])
         self.assertEqual(client.post("/api/adk/investigate/scenario_1_valid?backend=sequential&pattern=parallel")
                          .status_code, 422)
         self.assertEqual(client.post("/api/adjudicate/CLM-2024-003", json={"decision": "APPROVED"}).status_code, 409)

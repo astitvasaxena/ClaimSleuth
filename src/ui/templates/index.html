@@ -2487,7 +2487,12 @@
             if (adkReport) {
                 el.innerText = `Google ADK ${adkReport.pipeline_backend} · ${adkReport.planner} · tools: ${adkReport.tool_backend}`
                     + (adkReport.forensics_mode !== 'none'
-                        ? ` · CrewAI via A2A: ${adkReport.a2a_call && adkReport.a2a_call.ok ? 'ok' : 'FAILED'}` : '');
+                        ? ` · CrewAI via A2A: ${adkReport.a2a_call && adkReport.a2a_call.ok ? 'ok' : 'FAILED'}` : '')
+                    + (adkReport.rag
+                        ? ` · RAG: ${adkReport.rag.error ? 'FAILED' : Object.keys(adkReport.policy_citations || {}).length + ' policy citations'}` : '');
+                // Hover shows each citation's source file and section
+                el.title = Object.entries((adkReport && adkReport.policy_citations) || {})
+                    .map(([topic, c]) => `${topic}: ${c.source_file} §${c.section} (score ${c.score.toFixed(2)})`).join('\n');
                 return;
             }
             if (!runtime) return;
