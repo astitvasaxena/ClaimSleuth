@@ -71,6 +71,9 @@ class VerifierReport(BaseModel):
     gate_2_deterministic_rules_passed: bool
     gate_2_arithmetic_matches: bool
     discrepancies: List[str] = Field(default_factory=list)
+    # The verifier's own recomputation. DIAGNOSTIC ONLY: it is never copied into
+    # the claim's settlement and never authorizes a payout.
+    recalculated_settlement: Optional[SettlementCalc] = None
     verified_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 class ClaimInvestigationState(BaseModel):
@@ -81,6 +84,8 @@ class ClaimInvestigationState(BaseModel):
     device_model: str
     incident_date: str
     reported_issue: str
+    # Optional free-text statement from the claimant (untrusted; checked by the input guardrails)
+    claimant_statement: Optional[str] = None
     current_step: int = 0
     max_steps: int = 5
     llm_calls_used: int = 0
@@ -96,6 +101,8 @@ class ClaimInvestigationState(BaseModel):
     deterministic_settlement: Optional[SettlementCalc] = None
     verifier_report: Optional[VerifierReport] = None
     requires_human_approval: bool = True
+    # Guardrail outcome (src/core/guardrails.py). Any "BLOCK:*" flag makes the claim non-payable.
+    guardrail_flags: List[str] = Field(default_factory=list)
     human_decision: Optional[Literal["APPROVED", "REJECTED", "INFO_REQUESTED"]] = None
     human_notes: Optional[str] = None
     
@@ -104,6 +111,7 @@ class ClaimInvestigationState(BaseModel):
         "IN_PROGRESS",
         "NEEDS_EVIDENCE",
         "CONFLICT_ESCALATED",
+        "BLOCKED_BY_GUARDRAIL",
         "VERIFIED_PENDING_APPROVAL",
         "REJECTED_DETERMINISTICALLY",
         "CLOSED_SETTLED",

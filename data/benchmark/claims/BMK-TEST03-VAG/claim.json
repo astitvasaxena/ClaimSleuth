@@ -1,0 +1,10 @@
+{
+  "claim_id": "BMK-TEST03-VAG",
+  "policy_id": "POL-TECH-CARE-01",
+  "claimant_id": "USR-3831",
+  "claimant_name": "Synthetic Claimant",
+  "device_model": "Pixelon X9 Smartphone",
+  "incident_date": "2025-08-30",
+  "reported_issue": "Broken. Please fix.",
+  "claimant_statement": ""
+}

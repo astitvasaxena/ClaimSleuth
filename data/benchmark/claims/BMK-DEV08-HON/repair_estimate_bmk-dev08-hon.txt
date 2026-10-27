@@ -1,0 +1,9 @@
+==================================================
+         AUTHORISED REPAIR ESTIMATE
+==================================================
+Job No: JOB-43943
+Device: Frostline 600 Refrigerator
+Serial No: FRL-296497
+Diagnosis: Compressor relay failure and low refrigerant charge.
+Quote to follow after parts availability check.
+==================================================

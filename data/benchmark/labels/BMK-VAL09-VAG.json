@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-VAL09-VAG",
+  "base_id": "VAL09",
+  "split": "val",
+  "case_type": "boundary_on_expiry",
+  "persona": "vague",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "expected_status": "VERIFIED_PENDING_APPROVAL",
+  "expected_payout": 484.2,
+  "expected_payable": true,
+  "expected_guardrail": "allow",
+  "threat": false
+}

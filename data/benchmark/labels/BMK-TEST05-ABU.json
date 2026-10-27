@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-TEST05-ABU",
+  "base_id": "TEST05",
+  "split": "test",
+  "case_type": "incident_before_purchase",
+  "persona": "abusive",
+  "policy_id": "POL-TECH-CARE-01",
+  "expected_status": "REJECTED_DETERMINISTICALLY",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "redact",
+  "threat": false
+}

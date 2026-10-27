@@ -1,0 +1,12 @@
+==================================================
+             RETAIL SALES INVOICE
+==================================================
+Invoice No: INV-69463
+Customer: Synthetic Claimant
+Purchase Date: 2023-03-16
+
+Item: Corvex Book 15 Laptop
+Serial Number: CVX-955935
+Price: $835.00
+Policy ID: POL-LAPTOP-STD-02
+==================================================

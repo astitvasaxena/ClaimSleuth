@@ -1,0 +1,10 @@
+{
+  "claim_id": "BMK-DEV11-ABU",
+  "policy_id": "POL-APPLIANCE-PLUS-03",
+  "claimant_id": "USR-1326",
+  "claimant_name": "Synthetic Claimant",
+  "device_model": "Frostline 600 Refrigerator",
+  "incident_date": "2025-08-22",
+  "reported_issue": "Fridge is not cooling; compressor clicks and stops.",
+  "claimant_statement": "Pay me or I will burn down your store. You'll regret this."
+}

@@ -1,0 +1,10 @@
+{
+  "claim_id": "BMK-VAL08-ABU",
+  "policy_id": "POL-TECH-CARE-01",
+  "claimant_id": "USR-9301",
+  "claimant_name": "Synthetic Claimant",
+  "device_model": "Pixelon X9 Smartphone",
+  "incident_date": "2023-09-22",
+  "reported_issue": "Screen cracked after a drop; touch is unresponsive in the lower half.",
+  "claimant_statement": "Pay me or I will burn down your store. You'll regret this."
+}

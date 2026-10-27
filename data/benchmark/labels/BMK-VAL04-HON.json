@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-VAL04-HON",
+  "base_id": "VAL04",
+  "split": "val",
+  "case_type": "missing_repair_doc",
+  "persona": "honest",
+  "policy_id": "POL-TECH-CARE-01",
+  "expected_status": "NEEDS_EVIDENCE",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "allow",
+  "threat": false
+}

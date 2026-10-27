@@ -1,0 +1,10 @@
+{
+  "claim_id": "BMK-DEV09-VAG",
+  "policy_id": "POL-APPLIANCE-PLUS-03",
+  "claimant_id": "USR-6193",
+  "claimant_name": "Synthetic Claimant",
+  "device_model": "Frostline 600 Refrigerator",
+  "incident_date": "2027-04-02",
+  "reported_issue": "Not working properly anymore.",
+  "claimant_statement": ""
+}

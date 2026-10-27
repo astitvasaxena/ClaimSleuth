@@ -1,0 +1,9 @@
+==================================================
+         AUTHORISED REPAIR ESTIMATE
+==================================================
+Job No: JOB-15004
+Device: Pixelon X9 Smartphone
+Serial No: PXN-901387
+Diagnosis: Liquid submersion beyond IP68 spec; corrosion on charging port.
+Estimated Cost: $205.00
+==================================================

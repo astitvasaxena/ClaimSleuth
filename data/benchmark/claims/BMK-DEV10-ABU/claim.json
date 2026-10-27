@@ -1,0 +1,10 @@
+{
+  "claim_id": "BMK-DEV10-ABU",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "claimant_id": "USR-3061",
+  "claimant_name": "Synthetic Claimant",
+  "device_model": "Corvex Book 15 Laptop",
+  "incident_date": "15/02/2024",
+  "reported_issue": "Laptop will not power on; charging LED blinks twice.",
+  "claimant_statement": "Your company is full of incompetent idiots and this product is crap."
+}

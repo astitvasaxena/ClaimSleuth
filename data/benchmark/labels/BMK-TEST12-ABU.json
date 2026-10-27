@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-TEST12-ABU",
+  "base_id": "TEST12",
+  "split": "test",
+  "case_type": "excluded_peril",
+  "persona": "abusive",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "expected_status": "REJECTED_DETERMINISTICALLY",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "redact",
+  "threat": false
+}

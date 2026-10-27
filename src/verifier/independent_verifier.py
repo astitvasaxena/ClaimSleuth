@@ -71,6 +71,7 @@ class DualGateVerifier:
             gate_2_rules_passed = False
 
         # 3. Arithmetic & Financial Check
+        recalculated = None
         if "repair_cost" in state.evidence:
             extracted_cost = float(state.evidence["repair_cost"].extracted_value)
             recalculated = compute_settlement(
@@ -89,8 +90,12 @@ class DualGateVerifier:
                     )
                     gate_2_math_passed = False
             else:
-                # If agent forgot to attach settlement, verifier attaches the recalculation
-                state.deterministic_settlement = recalculated
+                # The verifier must not supply the payout it is meant to check. Its
+                # recalculation is reported as a diagnostic only, and approval is
+                # withheld because no proposed settlement was verified.
+                # Worded with "Missing" so the investigator maps it to NEEDS_EVIDENCE.
+                discrepancies.append("Missing proposed settlement: the investigator did not compute one, so there is nothing to verify")
+                gate_2_math_passed = False
 
         overall_approved = gate_1_passed and gate_2_rules_passed and gate_2_math_passed
 
@@ -99,5 +104,6 @@ class DualGateVerifier:
             gate_1_evidence_substantiated=gate_1_passed,
             gate_2_deterministic_rules_passed=gate_2_rules_passed,
             gate_2_arithmetic_matches=gate_2_math_passed,
-            discrepancies=discrepancies
+            discrepancies=discrepancies,
+            recalculated_settlement=recalculated
         )

@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-VAL11-VAG",
+  "base_id": "VAL11",
+  "split": "val",
+  "case_type": "serial_conflict",
+  "persona": "vague",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "expected_status": "CONFLICT_ESCALATED",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "allow",
+  "threat": false
+}

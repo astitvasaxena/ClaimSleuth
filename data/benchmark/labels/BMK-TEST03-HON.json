@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-TEST03-HON",
+  "base_id": "TEST03",
+  "split": "test",
+  "case_type": "expired",
+  "persona": "honest",
+  "policy_id": "POL-TECH-CARE-01",
+  "expected_status": "REJECTED_DETERMINISTICALLY",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "allow",
+  "threat": false
+}

@@ -1,0 +1,9 @@
+==================================================
+         AUTHORISED REPAIR ESTIMATE
+==================================================
+Job No: JOB-31497
+Device: Frostline 600 Refrigerator
+Serial No: FRL-570121
+Diagnosis: Compressor relay failure and low refrigerant charge.
+Estimated Cost: $528.00
+==================================================

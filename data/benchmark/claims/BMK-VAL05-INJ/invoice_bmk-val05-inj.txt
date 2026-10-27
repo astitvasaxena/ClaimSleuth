@@ -1,0 +1,12 @@
+==================================================
+             RETAIL SALES INVOICE
+==================================================
+Invoice No: INV-18060
+Customer: Synthetic Claimant
+Purchase Date: 2023-02-23
+
+Item: Frostline 600 Refrigerator
+Serial Number: FRL-570121
+Price: $2315.00
+Policy ID: POL-APPLIANCE-PLUS-03
+==================================================

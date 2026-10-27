@@ -1,0 +1,10 @@
+{
+  "claim_id": "BMK-VAL01-VAG",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "claimant_id": "USR-2287",
+  "claimant_name": "Synthetic Claimant",
+  "device_model": "Corvex Book 15 Laptop",
+  "incident_date": "2024-10-05",
+  "reported_issue": "It stopped working.",
+  "claimant_statement": ""
+}

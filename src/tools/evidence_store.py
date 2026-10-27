@@ -1,13 +1,14 @@
 import os
 from pathlib import Path
 from typing import Dict, List, Optional
-from configs.settings import SAMPLE_CLAIMS_DIR
+import configs.settings as settings
 
 class EvidenceStore:
     """Manages dossier files, reading documents safely without executing them."""
     
-    def __init__(self, claims_dir: Path = SAMPLE_CLAIMS_DIR):
-        self.claims_dir = claims_dir
+    def __init__(self, claims_dir: Optional[Path] = None):
+        # Resolved when created (not at import) so the configured claims folder can change
+        self.claims_dir = Path(claims_dir) if claims_dir else Path(settings.SAMPLE_CLAIMS_DIR)
 
     def get_claim_folder(self, claim_id: str) -> Optional[Path]:
         # 1. Direct match on directory name

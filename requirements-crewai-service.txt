@@ -1,0 +1,15 @@
+# Separate environment for the CrewAI forensics A2A service (src/crew_service/).
+# Kept apart from requirements.txt because crewai pins mcp<2, pydantic<2.13 and openai<3,
+# which conflict with the main app (MCP SDK 2.x, pydantic 2.13).
+#
+#   python -m venv .venv-crewai
+#   .venv-crewai/Scripts/python -m pip install -r requirements-crewai-service.txt     (Windows)
+#   .venv-crewai/bin/python -m pip install -r requirements-crewai-service.txt         (macOS/Linux)
+#   .venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101
+#
+# Verified 2026-10-27 on Python 3.12.10 (pip check clean). Installs ~900 MB (chromadb,
+# onnxruntime, pyarrow, lancedb come with crewai).
+crewai==1.15.30
+a2a-sdk[http-server]==1.3.0
+python-dateutil>=2.8.2
+uvicorn>=0.28.0

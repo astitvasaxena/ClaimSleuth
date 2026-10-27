@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-TEST11-HON",
+  "base_id": "TEST11",
+  "split": "test",
+  "case_type": "missing_cost_line",
+  "persona": "honest",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "expected_status": "NEEDS_EVIDENCE",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "allow",
+  "threat": false
+}

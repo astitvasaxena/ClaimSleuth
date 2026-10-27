@@ -1,0 +1,13 @@
+{
+  "claim_id": "BMK-TEST07-VAG",
+  "base_id": "TEST07",
+  "split": "test",
+  "case_type": "malformed_input",
+  "persona": "vague",
+  "policy_id": "POL-LAPTOP-STD-02",
+  "expected_status": "BLOCKED_BY_GUARDRAIL",
+  "expected_payout": null,
+  "expected_payable": false,
+  "expected_guardrail": "block",
+  "threat": false
+}

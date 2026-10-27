@@ -15,6 +15,7 @@ htmlcov/
 
 # Virtual environments
 .venv/
+.venv-crewai/
 venv/
 ENV/
 env/
@@ -31,6 +32,9 @@ ehthumbs.db
 Desktop.ini
 $RECYCLE.BIN/
 .DS_Store
+
+# Runtime artifacts (audit ledgers written by the running app)
+data/runtime/
 
 # Machine-specific helper scripts
 powershell.bat

@@ -1,0 +1,12 @@
+==================================================
+             RETAIL SALES INVOICE
+==================================================
+Invoice No: INV-79056
+Customer: Synthetic Claimant
+Purchase Date: 2023-05-29
+
+Item: Pixelon X9 Smartphone
+Serial Number: PXN-243184
+Price: $2120.00
+Policy ID: POL-TECH-CARE-01
+==================================================

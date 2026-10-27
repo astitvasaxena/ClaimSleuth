@@ -17,6 +17,8 @@ from src.tools.anomaly_detector import flag_serial_anomalies
 from src.tools.evidence_store import EvidenceStore
 from src.agents.extractor import EvidenceExtractor
 from src.verifier.independent_verifier import DualGateVerifier
+from src.core.adjudication import determine_status
+from src.core.guardrails import evaluate_claim
 from configs.settings import (
     MAX_INVESTIGATION_STEPS,
     MAX_MODEL_CALLS,
@@ -80,6 +82,15 @@ class LeadInvestigatorAgent:
     def run_investigation(self, state: ClaimInvestigationState) -> ClaimInvestigationState:
         audit = AuditLogger(state.claim_id)
         audit.log_step(0, "PLAN", f"Initializing claim investigation for {state.claim_id} under policy {state.policy_id}")
+
+        # Input guardrails (validation, prompt injection, toxicity) on the claim and its documents
+        guard = evaluate_claim(state.model_dump(), self.evidence_store.get_all_claim_documents(state.claim_id))
+        state.guardrail_flags = guard.flags
+        if guard.action == "redact":
+            state.reported_issue = guard.sanitized_claim["reported_issue"]
+            state.claimant_statement = guard.sanitized_claim.get("claimant_statement")
+        for violation in guard.violations:
+            audit.log_conflict(f"Guardrail {violation['action']}: {violation['kind']} in {violation['field']}")
 
         bb = Blackboard(state.claim_id)
         monitor = ExecutionMonitor(state.claim_id, audit)
@@ -256,22 +267,8 @@ class LeadInvestigatorAgent:
         )
         bb.set_fact("verifier_verdict", verifier_report.model_dump(), source_agent="VerifierAgent")
 
-        # Adjudication status mapping
-        if state.conflicts:
-            state.status = "CONFLICT_ESCALATED"
-            state.requires_human_approval = True
-        elif not verifier_report.is_approved_by_verifier:
-            if any("expired" in d.lower() for d in verifier_report.discrepancies):
-                state.status = "REJECTED_DETERMINISTICALLY"
-            elif any("missing" in d.lower() for d in verifier_report.discrepancies):
-                state.status = "NEEDS_EVIDENCE"
-            else:
-                state.status = "REJECTED_DETERMINISTICALLY"
-            state.requires_human_approval = True
-        else:
-            state.status = "VERIFIED_PENDING_APPROVAL"
-            payout = state.deterministic_settlement.approved_payout if state.deterministic_settlement else 0.0
-            state.requires_human_approval = (payout >= HIGH_VALUE_THRESHOLD)
+        # Adjudication status mapping (shared with the ADK pipeline)
+        state.status, state.requires_human_approval = determine_status(state, verifier_report)
 
         return state
 
@@ -506,7 +503,10 @@ CRITICAL RULES:
                     }
                 )
                 if mcp_res and "approved_payout" in mcp_res:
-                    return mcp_res
+                    # Normalise to the registry's {"settlement": SettlementCalc} shape so
+                    # _record_observation stores it (D-2: the flat MCP dict was being
+                    # ignored and the planner re-ran compute_settlement until the step cap).
+                    return {"settlement": SettlementCalc(**mcp_res), "via": "mcp"}
             except Exception as mcp_err:
                 logger.warning(f"MCP compute_settlement fallback: {mcp_err}")
 

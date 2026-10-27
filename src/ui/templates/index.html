@@ -588,6 +588,7 @@
         .hero-action-row {
             display: flex;
             align-items: center;
+            flex-wrap: wrap;
             gap: 1rem;
         }
 
@@ -1429,7 +1430,7 @@
                         </div>
                         <div class="meta-chip">
                             <span class="meta-k">Investigation</span>
-                            <span class="meta-v" id="metaEngine">Adaptive Gemini</span>
+                            <span class="meta-v" id="metaEngine">Checking…</span>
                         </div>
                     </div>
                 </div>
@@ -1441,6 +1442,13 @@
                         </svg>
                         <span>Initiate Investigation</span>
                     </button>
+                    <select id="engineSelect" aria-label="Investigation engine" title="Investigation engine"
+                            style="background: rgba(0,0,0,0.4); color: var(--text-primary, #fff); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.45rem 0.6rem; font-family: var(--font-sans); font-size: 0.74rem;">
+                        <option value="legacy">Original investigator loop</option>
+                        <option value="adk_local">Google ADK Workflow (local tools)</option>
+                        <option value="adk_mcp">Google ADK Workflow + MCP server (stdio)</option>
+                        <option value="adk_mcp_crewai">ADK + MCP + CrewAI forensics (A2A service)</option>
+                    </select>
                     <span class="investigation-hint">Plan → Execute → Observe → Dual-Gate</span>
                 </div>
             </div>
@@ -1556,7 +1564,7 @@
 
                 <!-- Financial Settlement Breakdown -->
                 <div class="math-box" id="mathBox" style="display: none;">
-                    <div class="math-header">Deterministic Settlement Breakdown</div>
+                    <div class="math-header" id="mathHeader">Deterministic Settlement Breakdown</div>
                     <div class="math-grid">
                         <div class="math-cell">
                             <div class="math-label">Repair Cost</div>
@@ -1571,8 +1579,8 @@
                             <div class="math-val" id="mathDep">-$0.00</div>
                         </div>
                         <div class="math-cell">
-                            <div class="math-label">Approved Payout</div>
-                            <div class="math-val approved" id="mathPayout">$0.00</div>
+                            <div class="math-label" id="mathPayoutLabel">Payout</div>
+                            <div class="math-val" id="mathPayout">$0.00</div>
                         </div>
                     </div>
                     <div id="mathExplanation" style="font-size: 0.7rem; color: var(--text-secondary); font-family: var(--font-mono); text-align: center;"></div>
@@ -1658,10 +1666,10 @@
         <section class="tech-details">
             <button class="tech-toggle" id="techToggle" onclick="toggleTechDetails()">
                 <span class="tech-toggle-icon">▶</span>
-                <span>Technical Console — Blackboard Shared Memory, A2A Messages, MCP, ADK/CrewAI</span>
+                <span>Technical Console — Blackboard Shared Memory, Agent Messages, MCP</span>
                 <div class="tech-toggle-badges">
-                    <span class="tech-badge" style="background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3);">MCP 2.x</span>
-                    <span class="tech-badge" style="background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3);">CrewAI Adapter</span>
+                    <span class="tech-badge" style="background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3);">MCP (in-process)</span>
+                    <span class="tech-badge" style="background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3);">CrewAI placeholder</span>
                 </div>
             </button>
             <div class="tech-content" id="techContent">
@@ -1700,11 +1708,11 @@
 
                     <div>
                         <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem; display: flex; justify-content: space-between;">
-                            <span>Agent-to-Agent (A2A) Message Bus</span>
+                            <span>Agent Message Log (in-memory, not A2A protocol)</span>
                             <span id="a2aCountBadge" style="font-family: var(--font-mono); color: var(--status-indigo);">0 Messages</span>
                         </div>
                         <div id="a2aMessagesContainer" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.6rem; font-size: 0.72rem; font-family: var(--font-mono);">
-                            <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No A2A messages exchanged yet.</div>
+                            <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No agent messages exchanged yet.</div>
                         </div>
                     </div>
                 </div>
@@ -1712,7 +1720,7 @@
                 <!-- Multi-Agent Framework Actions -->
                 <div style="margin-top: 1.25rem; text-align: center;">
                     <button class="btn-action" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.75rem; background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.82rem;" onclick="runCrewAIWorkflow()">
-                        ⚡ Run CrewAI Collaborative Multi-Agent Workflow
+                        ⚡ Run CrewAI-style Placeholder Workflow (crewai not used)
                     </button>
                 </div>
             </div>
@@ -2110,15 +2118,27 @@
             `;
 
             try {
-                const res = await fetch(`/api/investigate/${currentScenario}`, { method: 'POST' });
+                // The engine selector picks the endpoint; both return the same top-level fields.
+                const engine = document.getElementById('engineSelect').value;
+                const url = engine === 'legacy'
+                    ? `/api/investigate/${currentScenario}`
+                    : `/api/adk/investigate/${currentScenario}?backend=workflow`
+                      + `&tools=${engine === 'adk_local' ? 'local' : 'mcp_stdio'}`
+                      + `&forensics=${engine === 'adk_mcp_crewai' ? 'crewai_a2a' : 'none'}`;
+                const res = await fetch(url, { method: 'POST' });
                 const data = await res.json();
+                if (!res.ok) {
+                    alert(`Investigation failed (HTTP ${res.status}): ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}`);
+                    return;
+                }
                 const state = data.state;
                 const audit = data.audit_trail;
                 const blackboard = data.blackboard;
                 const monitoring = data.monitoring;
 
                 activeInvestigationState = state;
-                renderInvestigationResults(state, audit, blackboard, monitoring);
+                renderRuntimeStatus(data.runtime, data.report);
+                renderInvestigationResults(state, audit, blackboard, monitoring, data.payout);
 
                 // Update 3D Evidence Core with real response data
                 if (evidenceEngine) {
@@ -2137,7 +2157,59 @@
             }
         }
 
-        function renderInvestigationResults(state, audit, blackboard, monitoring) {
+        // Renders the payout card and settlement breakdown from the server's payout view.
+        // Only AUTHORIZED is shown as approved; PROPOSED is pending; anything else is
+        // a non-payable claim whose figure (if any) is labelled as a diagnostic calculation.
+        function renderPayout(payout) {
+            const payEl = document.getElementById('rPayout');
+            const payNote = document.getElementById('rPayoutNote');
+            const mathBox = document.getElementById('mathBox');
+            const payLabel = document.getElementById('mathPayoutLabel');
+            const mathPayout = document.getElementById('mathPayout');
+            const status = payout ? payout.payout_status : 'NOT_PAYABLE';
+
+            if (status === 'AUTHORIZED') {
+                payEl.innerText = `$${payout.authorized_payout.toFixed(2)}`;
+                payEl.className = 'result-card-value approved';
+                payNote.innerText = 'Authorized by human reviewer';
+                payLabel.innerText = 'Authorized Payout';
+                mathPayout.className = 'math-val approved';
+            } else if (status === 'PROPOSED_PENDING_APPROVAL') {
+                payEl.innerText = `$${payout.proposed_payout.toFixed(2)}`;
+                payEl.className = 'result-card-value escalated';
+                payNote.innerText = 'Proposed — awaiting human approval';
+                payLabel.innerText = 'Proposed Payout (not approved)';
+                mathPayout.className = 'math-val';
+            } else {
+                payEl.innerText = 'Not payable';
+                payEl.className = 'result-card-value rejected';
+                payNote.innerText = payout && payout.diagnostic_calculation
+                    ? `Diagnostic calc $${payout.diagnostic_calculation.approved_payout.toFixed(2)} — not authorized`
+                    : (payout ? payout.explanation.substring(0, 60) : 'Not calculated');
+                payLabel.innerText = 'Diagnostic Only — Not Authorized';
+                mathPayout.className = 'math-val';
+            }
+
+            const calc = (activeInvestigationState && activeInvestigationState.deterministic_settlement)
+                || (payout && payout.diagnostic_calculation);
+            if (calc) {
+                mathBox.style.display = 'block';
+                document.getElementById('mathHeader').innerText = status === 'NOT_PAYABLE'
+                    ? 'Diagnostic Settlement Calculation (claim not payable)'
+                    : 'Deterministic Settlement Breakdown';
+                document.getElementById('mathCost').innerText = `$${calc.repair_cost.toFixed(2)}`;
+                document.getElementById('mathDeductible').innerText = `-$${calc.deductible.toFixed(2)}`;
+                document.getElementById('mathDep').innerText = `-$${calc.depreciation_applied.toFixed(2)}`;
+                mathPayout.innerText = `$${calc.approved_payout.toFixed(2)}`;
+                document.getElementById('mathExplanation').innerText = payout
+                    ? `${calc.formula_explanation} ${payout.explanation}`
+                    : calc.formula_explanation;
+            } else {
+                mathBox.style.display = 'none';
+            }
+        }
+
+        function renderInvestigationResults(state, audit, blackboard, monitoring, payout) {
             updateStatusPill(state.status);
 
             // ---- Results Summary Banner ----
@@ -2184,19 +2256,8 @@
                 covNote.innerText = '';
             }
 
-            // Payout
-            const payEl = document.getElementById('rPayout');
-            const payNote = document.getElementById('rPayoutNote');
-            if (state.deterministic_settlement) {
-                const s = state.deterministic_settlement;
-                payEl.innerText = `$${s.approved_payout.toFixed(2)}`;
-                payEl.className = 'result-card-value approved';
-                payNote.innerText = `Cost $${s.repair_cost.toFixed(0)} − Ded $${s.deductible.toFixed(0)}`;
-            } else {
-                payEl.innerText = '$0.00';
-                payEl.className = 'result-card-value';
-                payNote.innerText = state.status.includes('REJECTED') ? 'Ineligible claim' : 'Not calculated';
-            }
+            // Payout (card + breakdown) from the server's payout view
+            renderPayout(payout);
 
             // Human approval
             const appEl = document.getElementById('rApproval');
@@ -2291,20 +2352,6 @@
                 discBox.innerHTML = `<strong>Discrepancies Flagged:</strong><br>${discrepancies.join('<br>')}`;
             }
 
-            // ---- Settlement Math ----
-            const mathBox = document.getElementById('mathBox');
-            if (state.deterministic_settlement) {
-                mathBox.style.display = 'block';
-                const s = state.deterministic_settlement;
-                document.getElementById('mathCost').innerText = `$${s.repair_cost.toFixed(2)}`;
-                document.getElementById('mathDeductible').innerText = `-$${s.deductible.toFixed(2)}`;
-                document.getElementById('mathDep').innerText = `-$${s.depreciation_applied.toFixed(2)}`;
-                document.getElementById('mathPayout').innerText = `$${s.approved_payout.toFixed(2)}`;
-                document.getElementById('mathExplanation').innerText = s.formula_explanation;
-            } else {
-                mathBox.style.display = 'none';
-            }
-
             // ---- Audit Trail ----
             renderAuditTrail(audit);
 
@@ -2352,7 +2399,7 @@
             document.getElementById('a2aCountBadge').innerText = `${msgs.length} Messages`;
 
             if (msgs.length === 0) {
-                a2aContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No A2A messages exchanged yet.</div>`;
+                a2aContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No agent messages exchanged yet.</div>`;
             } else {
                 msgs.forEach(m => {
                     const d = document.createElement('div');
@@ -2372,7 +2419,9 @@
 
         function renderMonitoring(mon) {
             if (!mon) return;
-            document.getElementById('metricLatency').innerText = `${(mon.avg_step_latency_ms || 12.0).toFixed(1)} ms`;
+            // Show a dash when latency was not measured, never a placeholder number
+            document.getElementById('metricLatency').innerText =
+                typeof mon.avg_step_latency_ms === 'number' ? `${mon.avg_step_latency_ms.toFixed(1)} ms` : '—';
             document.getElementById('metricTools').innerText = mon.tools_called || 0;
             document.getElementById('metricReplans').innerText = mon.replans_triggered || 0;
         }
@@ -2384,7 +2433,7 @@
                 renderBlackboard(data.blackboard);
                 if (data.crew_result) {
                     updateStatusPill(data.crew_result.status);
-                    alert(`CrewAI Multi-Agent Workflow Completed:\nStatus: ${data.crew_result.status}\nAgents Involved: ${data.crew_result.crew_agents_involved.join(' → ')}`);
+                    alert(`CrewAI-style placeholder workflow finished:\nStatus: ${data.crew_result.status}\nRoles involved: ${data.crew_result.crew_agents_involved.join(' → ')}\n\n${data.crew_result.implementation}`);
                 }
             } catch (err) {
                 console.error("CrewAI execution error:", err);
@@ -2432,17 +2481,64 @@
             container.scrollTop = container.scrollHeight;
         }
 
-        async function adjudicate(decision) {
+        // Shows what is actually running (from /api/runtime-status), not a fixed label
+        function renderRuntimeStatus(runtime, adkReport) {
+            const el = document.getElementById('metaEngine');
+            if (adkReport) {
+                el.innerText = `Google ADK ${adkReport.pipeline_backend} · ${adkReport.planner} · tools: ${adkReport.tool_backend}`
+                    + (adkReport.forensics_mode !== 'none'
+                        ? ` · CrewAI via A2A: ${adkReport.a2a_call && adkReport.a2a_call.ok ? 'ok' : 'FAILED'}` : '');
+                return;
+            }
+            if (!runtime) return;
+            el.innerText = runtime.planner_mode === 'gemini'
+                ? `Gemini (${runtime.gemini.model})`
+                : 'Deterministic fallback (no Gemini)';
+        }
+
+        async function refreshRuntimeStatus() {
+            try {
+                const res = await fetch('/api/runtime-status');
+                if (res.ok) renderRuntimeStatus(await res.json());
+            } catch (err) {
+                console.error("Runtime status unavailable:", err);
+            }
+        }
+
+        // The adjudication token (if the server requires one) is typed in by the reviewer
+        // and kept only for this browser tab. It is never embedded in the page.
+        function adjudicationHeaders() {
+            const headers = { 'Content-Type': 'application/json' };
+            let token = null;
+            try { token = sessionStorage.getItem('claimsleuthAdjudicationToken'); } catch (e) {}
+            if (token) headers['Authorization'] = `Bearer ${token}`;
+            return headers;
+        }
+
+        async function adjudicate(decision, isRetry = false) {
             const notes = document.getElementById('humanNotesInput').value;
             try {
                 const res = await fetch(`/api/adjudicate/${currentClaimId}`, {
                     method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: adjudicationHeaders(),
                     body: JSON.stringify({ decision, notes })
                 });
                 const data = await res.json();
+                if ((res.status === 401 || res.status === 403) && !isRetry) {
+                    const token = prompt('This server requires an adjudication token. Enter it to continue:');
+                    if (token) {
+                        try { sessionStorage.setItem('claimsleuthAdjudicationToken', token); } catch (e) {}
+                        return adjudicate(decision, true);
+                    }
+                }
+                if (!res.ok) {
+                    const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
+                    alert(`Decision not recorded (HTTP ${res.status}): ${detail}`);
+                    return;
+                }
                 updateStatusPill(data.status);
                 renderAuditTrail(data.audit_trail);
+                renderPayout(data.payout);
                 
                 if (evidenceEngine && activeInvestigationState) {
                     activeInvestigationState.status = data.status;
@@ -2459,6 +2555,7 @@
         window.addEventListener('DOMContentLoaded', () => {
             evidenceEngine = new EvidenceCoreEngine('evidenceCoreCanvas');
             loadScenarios();
+            refreshRuntimeStatus();
 
             // Cinematic Opening Sequence Dissolve
             setTimeout(() => {

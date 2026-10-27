@@ -1,0 +1,9 @@
+==================================================
+         AUTHORISED REPAIR ESTIMATE
+==================================================
+Job No: JOB-97738
+Device: Pixelon X9 Smartphone
+Serial No: PXN-447622
+Diagnosis: Cracked OLED panel from accidental impact. Logic board intact.
+Estimated Cost: $203.00
+==================================================
