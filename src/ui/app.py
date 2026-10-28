@@ -97,6 +97,19 @@ DECISION_TO_STATUS = {
     "INFO_REQUESTED": "NEEDS_EVIDENCE",
 }
 
+
+def permitted_decisions(state: ClaimInvestigationState) -> list:
+    """
+    The human decisions /api/adjudicate would accept for this state right now (the same rules as
+    its guard). Read-only and informational: the dashboard uses it to show only valid controls,
+    and the endpoint still checks every decision itself.
+    """
+    allowed = ALLOWED_DECISIONS.get(state.status, set())
+    approvable = bool(state.verifier_report and state.verifier_report.is_approved_by_verifier
+                      and state.deterministic_settlement is not None)
+    return [d for d in ("APPROVED", "REJECTED", "INFO_REQUESTED")
+            if d in allowed and (d != "APPROVED" or approvable)]
+
 AUDIT_RESPONSE_LIMIT = 50  # entries returned with an adjudication response
 
 
@@ -169,7 +182,7 @@ def runtime_status() -> Dict[str, Any]:
             "model": GEMINI_MODEL if gemini_active else None,
         },
         "mcp": {
-            "pipelines": "in_process: /api/investigate and /api/investigate-crew call the legacy "
+            "pipelines": "in_process: /api/investigate calls the legacy "
                          "src/mcp/tool_server.py object directly (no transport)",
             "remote_server": "available: python -m src.mcp.remote_server --transport stdio|http "
                              "(6 policy-grounded tools; tested over both transports)",
@@ -187,10 +200,12 @@ def runtime_status() -> Dict[str, Any]:
         # Configured != live-tested: a live Gemini call is only proven by tests/live.
         "gemini_configured_for_adk": resolve_model(None, None) is not None,
         "crewai": {
-            "forensics_service": "real crewai (Flow + optional Crew) in a separate environment (.venv-crewai): "
-                                 "python -m src.crew_service.a2a_server; reached from ADK over A2A",
+            "forensics_service": "real crewai in a separate environment (.venv-crewai): a Flow of deterministic "
+                                 "checks, then an LLM-backed Agent/Task/Crew (python -m src.crew_service.a2a_server "
+                                 "--env-file .env); reached from ADK over A2A",
+            "llm_stage": "reported per run in report.forensics.llm_review (status, provider/model, Crew executed, "
+                         "LLM calls, tokens); LLM_NOT_CONFIGURED when the service has no API key",
             "used_by": "/api/adk/investigate/{scenario}?forensics=crewai_a2a",
-            "legacy_investigate_crew_endpoint": "placeholder: /api/investigate-crew does NOT use crewai",
         },
         "a2a": {
             "implementation": "ADK RemoteA2aAgent (a2a-sdk 1.3.0) -> CrewAI service Agent Card + JSON-RPC over HTTP",
@@ -264,7 +279,8 @@ def run_investigation(scenario_id: str):
         "blackboard": bb_summary,
         "monitoring": monitor_summary,
         "mcp_tools": ["check_coverage_window", "compute_settlement", "flag_serial_anomalies"],
-        "runtime": runtime_status()
+        "runtime": runtime_status(),
+        "allowed_decisions": permitted_decisions(result_state),
     }
 
 @app.post("/api/adk/investigate/{scenario_id}")
@@ -317,6 +333,7 @@ def run_adk_pipeline(scenario_id: str, backend: Literal["workflow", "sequential"
         "blackboard": view["blackboard"],
         "monitoring": view["monitoring"],
         "runtime": runtime_status(),
+        "allowed_decisions": permitted_decisions(claim_state),
         "investigation_source": "adk",
         # ADK-specific detail
         "report": result.report.model_dump(mode="json"),
@@ -341,29 +358,6 @@ def get_monitoring_data(claim_id: str):
     if not summary:
         raise HTTPException(status_code=404, detail="No monitoring metrics found for claim")
     return summary
-
-@app.post("/api/investigate-crew/{scenario_id}")
-def run_crewai_investigation(scenario_id: str):
-    """Run collaborative multi-agent investigation using the CrewAI role adapter."""
-    folder = PROJECT_ROOT / "data" / "sample_claims" / scenario_id
-    claim_json = folder / "claim.json"
-    if not claim_json.exists():
-        raise HTTPException(status_code=404, detail="Claim definition not found")
-        
-    with open(claim_json, "r", encoding="utf-8") as f:
-        claim_data = json.load(f)
-        
-    from src.core.blackboard import Blackboard
-    from src.frameworks.crewai_adapter import ClaimInvestigationCrew
-
-    claim_id = claim_data.get("claim_id", scenario_id)
-    bb = Blackboard(claim_id)
-    crew = ClaimInvestigationCrew(claim_id, bb)
-    result = crew.kickoff(claim_data)
-    return {
-        "crew_result": result,
-        "blackboard": bb.get_summary()
-    }
 
 def _check_adjudication_auth(request: Request):
     """Enforce Bearer token when CLAIMSLEUTH_ADJUDICATION_TOKEN is configured."""
@@ -425,6 +419,7 @@ def adjudicate_claim(claim_id: str, req: AdjudicationRequest, request: Request):
         "status": state.status,
         "human_decision": state.human_decision,
         "payout": payout_view(state),
+        "allowed_decisions": permitted_decisions(state),
         "audit_trail": audit.get_trail()[-AUDIT_RESPONSE_LIMIT:],
         "investigation_source": run["source"],
         "run_id": run["run_id"],

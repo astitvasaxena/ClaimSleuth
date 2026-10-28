@@ -275,7 +275,8 @@ class TestAdkEndpoint(unittest.TestCase):
 
     def test_existing_endpoint_unchanged(self):
         data = self.client.post("/api/investigate/scenario_1_valid").json()
-        self.assertEqual(set(data), {"state", "payout", "audit_trail", "blackboard", "monitoring", "mcp_tools", "runtime"})
+        self.assertEqual(set(data), {"state", "payout", "audit_trail", "blackboard", "monitoring", "mcp_tools", "runtime",
+                                     "allowed_decisions"})   # additive: decisions /api/adjudicate would accept
         self.assertEqual(data["payout"]["proposed_payout"], 251.0)
 
 

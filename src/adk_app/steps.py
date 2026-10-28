@@ -205,7 +205,12 @@ async def forensics_review_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any
     - reply that is not a valid ForensicsReport (e.g. carries a payout or approval
       field, or names another claim) -> rejected as a tool error (fail closed);
     - CrewAI and ADK disagreeing about the serial check -> unresolved conflict;
-    - any CrewAI FLAG -> conflict, so a human reviews the claim.
+    - any CrewAI FLAG -> conflict, so a human reviews the claim;
+    - LLM stage (CrewAI Agent/Task/Crew): not configured -> disclosed as deterministic-only;
+      configured but failed, timed out or returned invalid output -> tool error (fail closed);
+      execution flags that do not add up -> report rejected; medium/high findings,
+      suspicious instructions, insufficient evidence, a review recommendation or a
+      contradiction of a deterministic check -> conflict (escalate).
     The CrewAI result can only add caution; it can never approve or pay.
     """
     claim_id = s["bb:claim"]["claim_id"]
@@ -224,6 +229,12 @@ async def forensics_review_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any
             report = ForensicsReport.model_validate_json(raw[len(FORENSICS_JSON_PREFIX):])
             if report.claim_id != claim_id:
                 raise ValueError(f"report is for claim {report.claim_id}, expected {claim_id}")
+            review = report.llm_review
+            if review is not None and review.status == "COMPLETED" and not (
+                    review.crewai_crew_executed and review.llm_call_performed):
+                raise ValueError("llm_review claims COMPLETED without an executed Crew and LLM call")
+            if review is not None and review.status != "COMPLETED" and review.findings:
+                raise ValueError(f"llm_review carries findings although its status is {review.status}")
         except Exception as exc:
             report = None
             tool_errors = _tool_error(s, "ForensicsReviewAgent",
@@ -242,12 +253,33 @@ async def forensics_review_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any
             if msg not in conflicts:
                 conflicts.append(msg)
                 audit.log_conflict(msg)
+        review = report.llm_review
+        if review is not None and review.status not in ("COMPLETED", "LLM_NOT_CONFIGURED"):
+            tool_errors = _tool_error(s, "ForensicsReviewAgent", RuntimeError(
+                f"CrewAI LLM review failed: {review.status} ({review.error_category})"))
+        elif review is not None and review.status == "COMPLETED":
+            llm_msgs = [f"CrewAI LLM finding [{f.finding_type}/{f.severity}]: {f.explanation[:200]} "
+                        f"(sources: {', '.join(f.source_refs[:4]) or 'none'})"
+                        for f in review.findings if f.severity in ("medium", "high")
+                        or f.finding_type in ("suspicious_instruction", "insufficient_evidence")]
+            llm_msgs += [f"CrewAI LLM contradicted a deterministic check: {c}" for c in review.contradictions]
+            if not llm_msgs and review.recommendation in ("RECOMMEND_HUMAN_REVIEW", "INSUFFICIENT_EVIDENCE"):
+                llm_msgs.append(f"CrewAI LLM recommendation: {review.recommendation}")
+            for msg in llm_msgs:
+                if msg not in conflicts:
+                    conflicts.append(msg)
+                    audit.log_conflict(msg)
+    a2a_call = {**(s.get("bb:a2a_call") or {}), "ok": report is not None, "report_valid": report is not None}
+    llm = report.llm_review if report else None
     _audit(s, "ForensicsReviewAgent",
            f"report={'valid' if report else 'missing/invalid'} recommendation="
-           f"{report.recommendation if report else None}", "crewai_a2a")
+           f"{report.recommendation if report else None} llm={llm.status if llm else None} "
+           f"crew_executed={llm.crewai_crew_executed if llm else None} "
+           f"llm_calls={llm.llm_calls_succeeded if llm else None} model={llm.llm_model if llm else None}",
+           "crewai_a2a")
     sequence = list(s.get("bb:agent_sequence", [])) + ["CrewAIForensics", "ForensicsReviewAgent"]
     return {"bb:forensics": report.model_dump() if report else None, "bb:conflicts": conflicts,
-            "bb:tool_errors": tool_errors, "bb:agent_sequence": sequence}
+            "bb:tool_errors": tool_errors, "bb:agent_sequence": sequence, "bb:a2a_call": a2a_call}
 
 
 async def policy_retrieval_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any]:
@@ -543,6 +575,15 @@ async def report_agent(s: Dict[str, Any], tools=None) -> Dict[str, Any]:
         risk_flags.append("CREW_RESULT_INVALID")
     if any("CrewAI forensics unavailable" in e for e in s.get("bb:tool_errors", [])):
         risk_flags.append("CREW_SERVICE_UNAVAILABLE")
+    llm_review = (s.get("bb:forensics") or {}).get("llm_review") or {}
+    if s.get("bb:forensics") and llm_review.get("status", "LLM_NOT_CONFIGURED") == "LLM_NOT_CONFIGURED":
+        risk_flags.append("CREWAI_LLM_NOT_CONFIGURED")
+    if any("CrewAI LLM review failed" in e for e in s.get("bb:tool_errors", [])):
+        risk_flags.append("CREWAI_LLM_FAILED")
+    if any(c.startswith("CrewAI LLM") for c in s.get("bb:conflicts", [])):
+        risk_flags.append("CREWAI_LLM_FLAG")
+    if llm_review.get("rejected_findings"):
+        risk_flags.append("CREWAI_LLM_FINDING_REJECTED")
     if any("SECURITY WARNING" in (ev.get("verification_notes") or "") for ev in s.get("bb:evidence", {}).values()):
         risk_flags.append("PROMPT_INJECTION_PATTERN")
 

@@ -15,7 +15,8 @@ from src.adk_app.pipeline import run_adk_investigation
 from src.adk_app.report import FinalReport
 from tests.test_adk_pipeline import ScriptedFakeLlm, investigator_script, load_claim
 
-LEGACY_KEYS = {"state", "payout", "audit_trail", "blackboard", "monitoring", "mcp_tools", "runtime"}
+LEGACY_KEYS = {"state", "payout", "audit_trail", "blackboard", "monitoring", "mcp_tools", "runtime",
+               "allowed_decisions"}
 
 
 def load_app(token=None):

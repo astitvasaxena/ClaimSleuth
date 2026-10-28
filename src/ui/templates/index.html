@@ -550,9 +550,11 @@
             max-width: 580px;
         }
 
+        /* minmax(0, 1fr) + min-width: 0 let the fields shrink and wrap inside the card; the long
+           Investigation status gets its own full-width row instead of being cut off. */
         .meta-chips-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 0.75rem;
             margin-bottom: 1.75rem;
             padding: 1rem;
@@ -565,7 +567,10 @@
             display: flex;
             flex-direction: column;
             gap: 0.15rem;
+            min-width: 0;
         }
+
+        .meta-chip-wide { grid-column: 1 / -1; }
 
         .meta-k {
             font-size: 0.62rem;
@@ -580,9 +585,8 @@
             font-weight: 700;
             color: var(--text-primary);
             font-family: var(--font-mono);
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .hero-action-row {
@@ -804,10 +808,12 @@
            ========================================================================== */
         .main-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 1.5rem;
             margin-bottom: 2rem;
         }
+
+        .main-grid > .panel { min-width: 0; }
 
         .panel {
             background: var(--bg-surface);
@@ -1024,10 +1030,11 @@
         /* Documents Viewer */
         .doc-tabs {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
             margin-bottom: 0.65rem;
-            overflow-x: auto;
             padding-bottom: 0.25rem;
+            min-width: 0;
         }
 
         .doc-tab {
@@ -1039,7 +1046,8 @@
             border: 1px solid var(--border-subtle);
             color: var(--text-secondary);
             cursor: pointer;
-            white-space: nowrap;
+            max-width: 100%;
+            overflow-wrap: anywhere;
             transition: all 0.2s ease;
         }
 
@@ -1060,8 +1068,10 @@
             line-height: 1.45;
             color: #C0CAD3;
             white-space: pre-wrap;
-            max-height: 170px;
+            overflow-wrap: anywhere;
+            max-height: 300px;
             overflow-y: auto;
+            overflow-x: hidden;
         }
 
         /* Evidence Cards */
@@ -1079,14 +1089,27 @@
             border-radius: var(--radius-sm);
             padding: 0.75rem;
             font-size: 0.76rem;
+            min-width: 0;
         }
 
         .evidence-header {
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
             align-items: center;
+            gap: 0.25rem 0.5rem;
             margin-bottom: 0.25rem;
         }
+
+        .ev-value { font-weight: 700; color: #fff; font-size: 0.82rem; overflow-wrap: anywhere; }
+
+        .dossier-empty {
+            font-size: 0.76rem;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 1.25rem;
+        }
+        .dossier-empty.error { color: var(--status-red); }
 
         .ev-field {
             font-weight: 700;
@@ -1105,6 +1128,7 @@
 
         .ev-status.verified { background: var(--status-green-dim); color: var(--status-green); }
         .ev-status.contradicted { background: var(--status-red-dim); color: var(--status-red); }
+        .ev-status.unverified { background: var(--status-amber-dim); color: var(--status-amber); }
 
         .ev-quote {
             background: rgba(0, 0, 0, 0.4);
@@ -1115,16 +1139,23 @@
             color: #E2E8F0;
             margin-top: 0.35rem;
             border-radius: 0 4px 4px 0;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
         }
 
         .ev-meta {
             margin-top: 0.35rem;
             display: flex;
+            flex-wrap: wrap;
             justify-content: space-between;
+            gap: 0.15rem 0.6rem;
             font-size: 0.62rem;
             color: var(--text-tertiary);
             font-family: var(--font-mono);
+            overflow-wrap: anywhere;
         }
+
+        .ev-note { margin-top: 0.3rem; font-size: 0.66rem; color: var(--status-amber); overflow-wrap: anywhere; }
 
         /* Human In The Loop (HITL) Adjudication */
         .hitl-box {
@@ -1149,12 +1180,25 @@
             color: var(--text-secondary);
         }
 
-        .hitl-actions {
+        .hitl-outcome {
+            margin-top: 0.65rem;
             display: grid;
-            grid-template-columns: 1fr 1fr 1fr;
+            gap: 0.3rem;
+            font-size: 0.74rem;
+            color: var(--text-secondary);
+            overflow-wrap: anywhere;
+        }
+        .hitl-outcome strong { color: var(--text-primary); font-family: var(--font-mono); }
+
+        /* Only the decisions the server would accept are shown; the server still checks each one. */
+        .hitl-actions {
+            display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
             margin-top: 0.85rem;
         }
+        .hitl-actions .btn-action { flex: 1 1 8rem; }
+        .btn-action[hidden], #humanNotesInput[hidden] { display: none; }
 
         .btn-action {
             padding: 0.65rem 0.5rem;
@@ -1190,34 +1234,6 @@
         }
         .btn-info:hover { background: rgba(233, 189, 115, 0.22); }
 
-        /* Cryptographic Audit Trail */
-        .audit-trail {
-            display: flex;
-            flex-direction: column;
-            gap: 0.5rem;
-            max-height: 220px;
-            overflow-y: auto;
-        }
-
-        .audit-entry {
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 0.55rem 0.75rem;
-            font-size: 0.68rem;
-            font-family: var(--font-mono);
-        }
-
-        .audit-top {
-            display: flex;
-            justify-content: space-between;
-            color: var(--text-tertiary);
-            margin-bottom: 0.2rem;
-        }
-
-        .audit-hash { color: var(--accent-cyan); font-weight: 700; }
-        .audit-type { font-weight: 700; color: var(--text-primary); }
-
         /* ==========================================================================
            COLLAPSIBLE TECHNICAL DETAILS CONSOLE
            ========================================================================== */
@@ -1239,6 +1255,8 @@
             font-size: 0.84rem;
             font-weight: 700;
             width: 100%;
+            flex-wrap: wrap;
+            text-align: left;
             transition: all 0.2s ease;
         }
 
@@ -1259,8 +1277,10 @@
 
         .tech-toggle-badges {
             display: flex;
+            flex-wrap: wrap;
             gap: 0.5rem;
             margin-left: auto;
+            min-width: 0;
         }
 
         .tech-badge {
@@ -1299,11 +1319,77 @@
             border: 1px solid var(--border-subtle);
         }
 
+        /* minmax(0, 1fr): a plain 1fr column cannot shrink below its longest unbreakable string,
+           which pushed long JSON past the console and the viewport. */
         .tech-split {
             display: grid;
-            grid-template-columns: 1fr 1fr;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
             gap: 1.25rem;
         }
+
+        .tech-details, .tech-content, .tech-split > div { min-width: 0; max-width: 100%; }
+
+        /* One vertical scroll area per list; records wrap instead of scrolling sideways. */
+        .console-list {
+            max-height: 70vh;
+            overflow-y: auto;
+            overflow-x: hidden;
+            background: rgba(0,0,0,0.35);
+            border: 1px solid var(--border-subtle);
+            border-radius: var(--radius-sm);
+            padding: 0.6rem;
+            font-size: 0.72rem;
+            font-family: var(--font-mono);
+        }
+
+        .bb-fact, .bb-msg {
+            padding: 0.4rem 0.55rem;
+            margin-bottom: 0.35rem;
+            border-radius: 4px;
+            min-width: 0;
+        }
+        .bb-fact { background: rgba(255,255,255,0.03); border-left: 3px solid var(--accent-cyan); }
+        .bb-msg { background: rgba(129, 140, 248, 0.05); border-left: 3px solid var(--status-indigo); font-size: 0.68rem; }
+
+        .bb-fact-head, .bb-msg-head {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: 0.25rem 0.6rem;
+            min-width: 0;
+        }
+        .bb-fact-key { color: var(--accent-cyan); font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
+        .bb-fact-source {
+            flex: none;
+            font-size: 0.6rem;
+            color: var(--text-tertiary);
+            background: rgba(255,255,255,0.05);
+            padding: 0.1rem 0.35rem;
+            border-radius: 3px;
+        }
+
+        .bb-fact-value, .bb-msg-payload {
+            margin: 0.25rem 0 0;
+            max-width: 100%;
+            white-space: pre-wrap;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            color: #fff;
+            font-family: var(--font-mono);
+            font-size: 0.7rem;
+            line-height: 1.45;
+        }
+        .bb-msg-payload { color: var(--text-secondary); }
+
+        .bb-fact details > summary {
+            cursor: pointer;
+            color: var(--text-secondary);
+            font-size: 0.68rem;
+            margin-top: 0.2rem;
+            overflow-wrap: anywhere;
+        }
+        .bb-fact details > summary:hover { color: var(--text-primary); }
 
         /* ==========================================================================
            RESPONSIVE BREAKPOINTS
@@ -1311,8 +1397,12 @@
         @media (max-width: 1200px) {
             .workspace-hero { grid-template-columns: 1fr; }
             .scenarios-grid { grid-template-columns: 1fr; }
-            .meta-chips-grid { grid-template-columns: repeat(2, 1fr); }
-            .main-grid { grid-template-columns: 1fr; }
+            .meta-chips-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .main-grid { grid-template-columns: minmax(0, 1fr); }
+        }
+
+        @media (max-width: 520px) {
+            .meta-chips-grid { grid-template-columns: minmax(0, 1fr); }
         }
 
         @media (max-width: 768px) {
@@ -1320,7 +1410,7 @@
             .app-shell { padding: 1rem 1rem 3rem; }
             .case-headline { font-size: 1.6rem; }
             .results-grid { grid-template-columns: 1fr 1fr; }
-            .hitl-actions { grid-template-columns: 1fr; }
+            .hitl-actions .btn-action { flex-basis: 100%; }
             .tech-metrics-bar { grid-template-columns: 1fr 1fr; }
             .tech-split { grid-template-columns: 1fr; }
         }
@@ -1428,7 +1518,7 @@
                             <span class="meta-k">Incident Date</span>
                             <span class="meta-v" id="metaIncidentDate">2024-09-20</span>
                         </div>
-                        <div class="meta-chip">
+                        <div class="meta-chip meta-chip-wide">
                             <span class="meta-k">Investigation</span>
                             <span class="meta-v" id="metaEngine">Checking…</span>
                         </div>
@@ -1587,7 +1677,7 @@
                 </div>
             </div>
 
-            <!-- RIGHT COLUMN: Evidence Dossier, Human Review, Audit Ledger -->
+            <!-- RIGHT COLUMN: Evidence Dossier, Human Review -->
             <div class="panel">
                 <div class="panel-header">
                     <div class="panel-title">
@@ -1614,9 +1704,7 @@
                         Extracted Facts & Verbatim Quotes
                     </div>
                     <div class="evidence-list" id="evidenceList">
-                        <div style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; padding: 1.25rem;">
-                            No facts synthesized yet. Run investigation to parse source documents.
-                        </div>
+                        <div class="dossier-empty">Extracted facts and their verbatim quotes will appear here after an investigation runs.</div>
                     </div>
                 </div>
 
@@ -1632,29 +1720,21 @@
                     <div class="hitl-desc">
                         Enforced for settlements exceeding $150 threshold, claim denials, and flagged discrepancies.
                     </div>
-                    <textarea id="humanNotesInput" placeholder="Adjudicator rationale or settlement notes..." style="width: 100%; margin-top: 0.65rem; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.5rem; color: #fff; font-family: var(--font-sans); font-size: 0.74rem; resize: vertical; height: 42px;"></textarea>
+                    <!-- Outcome and controls come from the server's response (renderReviewPanel) -->
+                    <div class="hitl-outcome" id="hitlOutcome">
+                        <span>No investigation has run for this claim yet. Its outcome and the decisions available will appear here.</span>
+                    </div>
+                    <textarea id="humanNotesInput" hidden placeholder="Adjudicator rationale or settlement notes..." style="width: 100%; margin-top: 0.65rem; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.5rem; color: #fff; font-family: var(--font-sans); font-size: 0.74rem; resize: vertical; height: 42px;"></textarea>
                     <div class="hitl-actions">
-                        <button class="btn-action btn-approve" onclick="adjudicate('APPROVED')">
+                        <button class="btn-action btn-approve" id="btnDecisionAPPROVED" hidden onclick="adjudicate('APPROVED')">
                             ✔ Approve Payout
                         </button>
-                        <button class="btn-action btn-reject" onclick="adjudicate('REJECTED')">
+                        <button class="btn-action btn-reject" id="btnDecisionREJECTED" hidden onclick="adjudicate('REJECTED')">
                             ✖ Reject Claim
                         </button>
-                        <button class="btn-action btn-info" onclick="adjudicate('INFO_REQUESTED')">
+                        <button class="btn-action btn-info" id="btnDecisionINFO_REQUESTED" hidden onclick="adjudicate('INFO_REQUESTED')">
                             ✉ Request Info
                         </button>
-                    </div>
-                </div>
-
-                <!-- Cryptographic Audit Trail -->
-                <div>
-                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">
-                        Cryptographic Tamper-Evident Ledger
-                    </div>
-                    <div class="audit-trail" id="auditTrail">
-                        <div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; padding: 1rem;">
-                            Audit ledger initializing...
-                        </div>
                     </div>
                 </div>
 
@@ -1668,8 +1748,9 @@
                 <span class="tech-toggle-icon">▶</span>
                 <span>Technical Console — Blackboard Shared Memory, Agent Messages, MCP</span>
                 <div class="tech-toggle-badges">
-                    <span class="tech-badge" style="background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3);">MCP (in-process)</span>
-                    <span class="tech-badge" style="background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3);">CrewAI placeholder</span>
+                    <!-- Set from the last investigation's actual report (renderConsoleBadges) -->
+                    <span class="tech-badge" id="mcpBadge" style="background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3);">MCP: no run yet</span>
+                    <span class="tech-badge" id="crewBadge" style="background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3);">CrewAI: no run yet</span>
                 </div>
             </button>
             <div class="tech-content" id="techContent">
@@ -1701,7 +1782,7 @@
                             <span>Blackboard Working Memory</span>
                             <span id="factCountBadge" style="font-family: var(--font-mono); color: var(--accent-cyan);">0 Facts</span>
                         </div>
-                        <div id="blackboardFactsContainer" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.6rem; font-size: 0.72rem; font-family: var(--font-mono);">
+                        <div id="blackboardFactsContainer" class="console-list">
                             <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No facts in working memory.</div>
                         </div>
                     </div>
@@ -1711,17 +1792,10 @@
                             <span>Agent Message Log (in-memory, not A2A protocol)</span>
                             <span id="a2aCountBadge" style="font-family: var(--font-mono); color: var(--status-indigo);">0 Messages</span>
                         </div>
-                        <div id="a2aMessagesContainer" style="max-height: 220px; overflow-y: auto; background: rgba(0,0,0,0.35); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.6rem; font-size: 0.72rem; font-family: var(--font-mono);">
+                        <div id="a2aMessagesContainer" class="console-list">
                             <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No agent messages exchanged yet.</div>
                         </div>
                     </div>
-                </div>
-
-                <!-- Multi-Agent Framework Actions -->
-                <div style="margin-top: 1.25rem; text-align: center;">
-                    <button class="btn-action" style="display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.65rem 1.75rem; background: linear-gradient(135deg, #6366f1, #06b6d4); color: #fff; font-weight: 700; border: none; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.82rem;" onclick="runCrewAIWorkflow()">
-                        ⚡ Run CrewAI-style Placeholder Workflow (crewai not used)
-                    </button>
                 </div>
             </div>
         </section>
@@ -1736,7 +1810,11 @@
         let currentScenario = 'scenario_1_valid';
         let currentClaimId = 'CLM-2024-001';
         let currentDocs = {};
+        let currentDocsScenario = null;   // which scenario currentDocs belongs to
         let activeInvestigationState = null;
+        // Bumped on every scenario switch / new run: a response for an older one is ignored
+        let investigationSeq = 0;
+        let docsSeq = 0;
 
         // ==========================================================================
         // 3D EVIDENCE CORE ENGINE (Pure Canvas Mathematics, Zero Heavy Dependencies)
@@ -2032,33 +2110,38 @@
 
         async function selectScenario(scenarioId) {
             currentScenario = scenarioId;
+            investigationSeq++;                 // results of a run for the previous selection are now stale
+            const mySeq = ++docsSeq;
+            currentDocs = {};
+            currentDocsScenario = null;
+            document.getElementById('docTabs').replaceChildren();
+            document.getElementById('docContent').textContent = 'Loading documents…';
+            resetInvestigateButton();
             document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
             const card = document.getElementById(`sc-card-${scenarioId}`);
             if (card) card.classList.add('active');
 
             // Reset UI and Evidence Core
-            activeInvestigationState = null;
-            if (evidenceEngine) evidenceEngine.updateRealDataState(null);
-
-            document.getElementById('resultsBanner').classList.remove('visible');
-            document.getElementById('verifierCard').style.display = 'none';
-            document.getElementById('mathBox').style.display = 'none';
+            clearInvestigationView();
             document.getElementById('stepperTimeline').innerHTML = `
                 <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 2rem;">
                     Click <strong>"Initiate Investigation"</strong> to run the adaptive multi-agent reasoning cycle.
                 </div>
             `;
-            document.getElementById('evidenceList').innerHTML = `
-                <div style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; padding: 1.25rem;">
-                    No facts synthesized yet. Run investigation to parse source documents.
-                </div>
-            `;
+            renderEvidenceMessage('Extracted facts and their verbatim quotes will appear here after an investigation runs.');
+            renderReviewPanel(null);
             updateStatusPill("INITIALIZED");
 
             try {
                 const res = await fetch(`/api/scenario/${scenarioId}/docs`);
                 const data = await res.json();
-                currentDocs = data.documents;
+                if (mySeq !== docsSeq) return;   // another scenario was selected meanwhile
+                if (!res.ok) {
+                    document.getElementById('docContent').textContent = `Documents could not be loaded (HTTP ${res.status}).`;
+                    return;
+                }
+                currentDocs = data.documents || {};
+                currentDocsScenario = scenarioId;
                 const meta = data.claim_meta;
                 currentClaimId = meta.claim_id;
 
@@ -2077,37 +2160,75 @@
                 }
 
                 renderDocTabs();
-                loadAuditTrail(currentClaimId);
             } catch (err) {
                 console.error("Error loading scenario docs:", err);
+                if (mySeq === docsSeq) document.getElementById('docContent').textContent = 'Documents could not be loaded.';
             }
         }
 
         function renderDocTabs() {
             const tabsContainer = document.getElementById('docTabs');
-            tabsContainer.innerHTML = '';
-            const fileNames = Object.keys(currentDocs);
+            tabsContainer.replaceChildren();
+            const docs = currentDocs;          // the tabs always show the documents they were built from
+            const fileNames = Object.keys(docs).sort();
             if (fileNames.length === 0) {
-                document.getElementById('docContent').innerText = "No documents found in claim dossier.";
+                document.getElementById('docContent').textContent = "No documents found in claim dossier.";
                 return;
             }
 
             fileNames.forEach((fname, idx) => {
                 const tab = document.createElement('div');
                 tab.className = `doc-tab ${idx === 0 ? 'active' : ''}`;
-                tab.innerText = fname;
+                tab.textContent = fname;
                 tab.onclick = () => {
-                    document.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
+                    tabsContainer.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
                     tab.classList.add('active');
-                    document.getElementById('docContent').innerText = currentDocs[fname];
+                    document.getElementById('docContent').textContent = docs[fname];
                 };
                 tabsContainer.appendChild(tab);
             });
 
-            document.getElementById('docContent').innerText = currentDocs[fileNames[0]];
+            document.getElementById('docContent').textContent = docs[fileNames[0]];
+        }
+
+        // Hide the previous run's result (used on scenario switch and when a run fails)
+        function clearInvestigationView() {
+            activeInvestigationState = null;
+            if (evidenceEngine) evidenceEngine.updateRealDataState(null);
+            document.getElementById('resultsBanner').classList.remove('visible');
+            document.getElementById('verifierCard').style.display = 'none';
+            document.getElementById('mathBox').style.display = 'none';
+        }
+
+        function showInvestigationFailed(message) {
+            clearInvestigationView();
+            document.getElementById('stepperTimeline').innerHTML = `
+                <div style="font-size: 0.8rem; color: var(--status-red); text-align: center; padding: 2rem;">
+                    The investigation did not complete; no results are shown.
+                </div>
+            `;
+            updateStatusPill('INVESTIGATION_FAILED');
+            renderEvidenceMessage(message, true);
+            renderReviewPanel({ error: 'The investigation did not complete, so no decision is possible.' });
+        }
+
+        function resetInvestigateButton(label = 'Initiate Investigation') {
+            const btn = document.getElementById('runInvestigationBtn');
+            btn.disabled = false;
+            btn.innerHTML = `
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
+                </svg>
+                <span>${label}</span>
+            `;
         }
 
         async function runInvestigation() {
+            const mySeq = ++investigationSeq;
+            const scenarioAtStart = currentScenario;
+            const isCurrent = () => mySeq === investigationSeq && scenarioAtStart === currentScenario;
+            renderEvidenceMessage('Investigation in progress: extracting facts from the documents…');
+            renderReviewPanel({ loading: true });
             const btn = document.getElementById('runInvestigationBtn');
             btn.disabled = true;
             btn.innerHTML = `
@@ -2127,18 +2248,20 @@
                       + `&forensics=${engine === 'adk_mcp_crewai' ? 'crewai_a2a' : 'none'}`;
                 const res = await fetch(url, { method: 'POST' });
                 const data = await res.json();
+                if (!isCurrent()) return;        // the user switched scenario or started another run
                 if (!res.ok) {
+                    showInvestigationFailed(`Investigation failed (HTTP ${res.status}); there are no extracted facts to show.`);
                     alert(`Investigation failed (HTTP ${res.status}): ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}`);
                     return;
                 }
                 const state = data.state;
-                const audit = data.audit_trail;
                 const blackboard = data.blackboard;
                 const monitoring = data.monitoring;
 
                 activeInvestigationState = state;
                 renderRuntimeStatus(data.runtime, data.report);
-                renderInvestigationResults(state, audit, blackboard, monitoring, data.payout);
+                renderConsoleBadges(data.report || null, engine);
+                renderInvestigationResults(state, blackboard, monitoring, data.payout, data.allowed_decisions);
 
                 // Update 3D Evidence Core with real response data
                 if (evidenceEngine) {
@@ -2146,14 +2269,9 @@
                 }
             } catch (err) {
                 console.error("Investigation failed:", err);
+                if (isCurrent()) showInvestigationFailed('Investigation failed; there are no extracted facts to show.');
             } finally {
-                btn.disabled = false;
-                btn.innerHTML = `
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                    </svg>
-                    <span>Re-Run Investigation</span>
-                `;
+                if (mySeq === investigationSeq) resetInvestigateButton('Re-Run Investigation');
             }
         }
 
@@ -2209,7 +2327,143 @@
             }
         }
 
-        function renderInvestigationResults(state, audit, blackboard, monitoring, payout) {
+        // <dossier-helpers> Pure helpers (no DOM); tests/test_dashboard_dossier.py runs them in Node.
+        // 1-based line of the first verbatim occurrence of `snippet` in `docText`; null if it is not there.
+        function locateQuote(docText, snippet) {
+            if (typeof docText !== 'string' || typeof snippet !== 'string' || !snippet.trim()) return null;
+            const at = docText.indexOf(snippet);
+            return at < 0 ? null : docText.slice(0, at).split('\n').length;
+        }
+
+        const DECISION_ORDER = ['APPROVED', 'REJECTED', 'INFO_REQUESTED'];
+
+        // What the review panel says, from the server's own fields. Without allowed_decisions no control is shown.
+        function reviewSummary(status, payout, allowedDecisions, requiresHumanApproval) {
+            const money = v => (typeof v === 'number' ? `$${v.toFixed(2)}` : '—');
+            const payoutStatus = payout ? payout.payout_status : 'NOT_PAYABLE';
+            let payoutLine;
+            if (payoutStatus === 'AUTHORIZED') {
+                payoutLine = `Authorized payout: ${money(payout.authorized_payout)} (approved by a human reviewer)`;
+            } else if (payoutStatus === 'PROPOSED_PENDING_APPROVAL') {
+                payoutLine = `Proposed settlement: ${money(payout.proposed_payout)} (not paid unless a human approves it)`;
+            } else {
+                payoutLine = 'Not payable: no settlement can be approved for this claim';
+            }
+            const known = Array.isArray(allowedDecisions);
+            const decisions = known ? DECISION_ORDER.filter(d => allowedDecisions.includes(d)) : [];
+            let reviewLine;
+            if (String(status).startsWith('CLOSED_')) reviewLine = 'A final human decision is recorded; no further decisions are possible.';
+            else if (!known) reviewLine = 'The server did not report which decisions are allowed, so no controls are shown.';
+            else if (decisions.length === 0) reviewLine = 'No human decision is possible in this state.';
+            else if (!decisions.includes('APPROVED')) reviewLine = 'Human review required. Approval is not possible: the claim can only be rejected or sent back for more information.';
+            else reviewLine = requiresHumanApproval ? 'Human review required before any payout.' : 'A human decision is available.';
+            return { statusLabel: String(status || '').replace(/_/g, ' '), payoutLine, reviewLine, decisions };
+        }
+        // </dossier-helpers>
+
+        // review: null (nothing run yet) | {loading} | {error} | {status, payout, allowed, requiresHuman}
+        function renderReviewPanel(review) {
+            const box = document.getElementById('hitlOutcome');
+            box.replaceChildren();
+            const line = (text, label) => {
+                const el = document.createElement('span');
+                if (label) {
+                    const strong = document.createElement('strong');
+                    strong.textContent = label;
+                    el.append(strong, ' ');
+                }
+                el.append(text);
+                box.appendChild(el);
+            };
+            let decisions = [];
+            if (!review) {
+                line('No investigation has run for this claim yet. Its outcome and the decisions available will appear here.');
+            } else if (review.loading) {
+                line('Investigation in progress…');
+            } else if (review.error) {
+                line(review.error);
+            } else {
+                const s = reviewSummary(review.status, review.payout, review.allowed, review.requiresHuman);
+                line(s.statusLabel, 'Outcome:');
+                line(s.payoutLine);
+                line(s.reviewLine);
+                decisions = s.decisions;
+            }
+            DECISION_ORDER.forEach(d => {
+                const btn = document.getElementById(`btnDecision${d}`);
+                btn.hidden = !decisions.includes(d);
+                btn.disabled = false;
+            });
+            document.getElementById('humanNotesInput').hidden = decisions.length === 0;
+        }
+
+        function renderEvidenceMessage(text, isError = false) {
+            const msg = document.createElement('div');
+            msg.className = isError ? 'dossier-empty error' : 'dossier-empty';
+            msg.textContent = text;
+            document.getElementById('evidenceList').replaceChildren(msg);
+        }
+
+        // docs: this claim's documents (or null if not loaded), used only to find the quote's line
+        function renderEvidenceList(evidence, docs) {
+            const items = Object.values(evidence || {});
+            if (items.length === 0) {
+                renderEvidenceMessage('The investigation finished but no facts were extracted from the documents.');
+                return;
+            }
+            const evList = document.getElementById('evidenceList');
+            evList.replaceChildren();
+            items.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'evidence-card';
+
+                const header = document.createElement('div');
+                header.className = 'evidence-header';
+                const field = document.createElement('span');
+                field.className = 'ev-field';
+                field.textContent = item.field_name;
+                const status = document.createElement('span');
+                status.className = `ev-status ${String(item.status || '').toLowerCase()}`;
+                status.textContent = `${item.status} (${Math.round((item.confidence || 0) * 100)}%)`;
+                header.append(field, status);
+
+                const value = document.createElement('div');
+                value.className = 'ev-value';
+                value.textContent = String(item.extracted_value);
+                card.append(header, value);
+
+                if (item.raw_snippet) {
+                    const quote = document.createElement('div');
+                    quote.className = 'ev-quote';
+                    quote.textContent = `"${item.raw_snippet}"`;
+                    card.appendChild(quote);
+                }
+
+                const meta = document.createElement('div');
+                meta.className = 'ev-meta';
+                const source = document.createElement('span');
+                let where = '';
+                if (docs && typeof docs[item.source_document] === 'string') {
+                    const lineNo = locateQuote(docs[item.source_document], item.raw_snippet);
+                    where = lineNo ? ` · line ${lineNo}` : ' · quote not found verbatim in this document';
+                }
+                source.textContent = `Source: ${item.source_document}${where}`;
+                const ref = document.createElement('span');
+                ref.textContent = item.evidence_id;
+                meta.append(source, ref);
+                card.appendChild(meta);
+
+                if (item.verification_notes) {
+                    const note = document.createElement('div');
+                    note.className = 'ev-note';
+                    note.textContent = item.verification_notes;
+                    card.appendChild(note);
+                }
+                evList.appendChild(card);
+            });
+        }
+
+        function renderInvestigationResults(state, blackboard, monitoring, payout, allowedDecisions) {
             updateStatusPill(state.status);
 
             // ---- Results Summary Banner ----
@@ -2291,33 +2545,12 @@
                 timeline.appendChild(item);
             });
 
-            // ---- Evidence List ----
-            const evList = document.getElementById('evidenceList');
-            evList.innerHTML = '';
-            const evKeys = Object.keys(state.evidence || {});
+            // ---- Evidence List (only with this claim's own documents for line lookups) ----
+            renderEvidenceList(state.evidence, currentDocsScenario === currentScenario ? currentDocs : null);
 
-            if (evKeys.length === 0) {
-                evList.innerHTML = `<div style="font-size: 0.76rem; color: var(--text-secondary); text-align: center; padding: 1.25rem;">No facts extracted.</div>`;
-            } else {
-                evKeys.forEach(k => {
-                    const item = state.evidence[k];
-                    const card = document.createElement('div');
-                    card.className = 'evidence-card';
-                    card.innerHTML = `
-                        <div class="evidence-header">
-                            <span class="ev-field">${item.field_name}</span>
-                            <span class="ev-status ${item.status.toLowerCase()}">${item.status} (${Math.round(item.confidence * 100)}%)</span>
-                        </div>
-                        <div style="font-weight: 700; color: #fff; font-size: 0.82rem;">${item.extracted_value}</div>
-                        <div class="ev-quote">"${item.raw_snippet}"</div>
-                        <div class="ev-meta">
-                            <span>Source: ${item.source_document}</span>
-                            <span>${item.evidence_id}</span>
-                        </div>
-                    `;
-                    evList.appendChild(card);
-                });
-            }
+            // ---- Human review: outcome and only the decisions the server would accept ----
+            renderReviewPanel({ status: state.status, payout, allowed: allowedDecisions,
+                                requiresHuman: state.requires_human_approval });
 
             // ---- Dual-Gate Verifier ----
             const verifierBox = document.getElementById('verifierCard');
@@ -2352,12 +2585,71 @@
                 discBox.innerHTML = `<strong>Discrepancies Flagged:</strong><br>${discrepancies.join('<br>')}`;
             }
 
-            // ---- Audit Trail ----
-            renderAuditTrail(audit);
-
             // ---- Technical Console (Blackboard & Monitoring) ----
             if (blackboard) renderBlackboard(blackboard);
             if (monitoring) renderMonitoring(monitoring);
+        }
+
+        // <console-helpers> Pure display helpers (no DOM); tests/test_dashboard_console.py runs them in Node.
+        // Redaction affects the console display only; the underlying investigation data is unchanged.
+        const CONSOLE_REDACT_KEYS = /^(claimant_name|claimant_id|customer|customer_name|client|client_name|email|phone|address|payment_method|card_number)$/i;
+        const CONSOLE_REDACT_LABELS = /\b(Customer|Client|Claimant|Payment Method|Card|Email|Phone|Address)(\s*:\s*)[^\n"\\]+/gi;
+
+        function redactForConsole(value) {
+            if (Array.isArray(value)) return value.map(redactForConsole);
+            if (value !== null && typeof value === 'object') {
+                const out = {};
+                for (const [k, v] of Object.entries(value)) {
+                    out[k] = CONSOLE_REDACT_KEYS.test(k) ? '[redacted in console]' : redactForConsole(v);
+                }
+                return out;
+            }
+            if (typeof value === 'string') return value.replace(CONSOLE_REDACT_LABELS, '$1$2[redacted]');
+            return value;
+        }
+
+        // {kind, summary, text, open}: objects/lists as indented JSON behind a summary line
+        function consoleValueParts(value) {
+            const shown = redactForConsole(value);
+            if (shown !== null && typeof shown === 'object') {
+                const compact = JSON.stringify(shown);
+                const n = Array.isArray(shown) ? shown.length : Object.keys(shown).length;
+                const unit = Array.isArray(shown) ? (n === 1 ? 'item' : 'items') : (n === 1 ? 'key' : 'keys');
+                const preview = compact.length > 90 ? compact.slice(0, 90) + '…' : compact;
+                return { kind: 'json', summary: `${Array.isArray(shown) ? 'list' : 'object'} · ${n} ${unit} — ${preview}`,
+                         text: JSON.stringify(shown, null, 2), open: compact.length <= 120 };
+            }
+            return { kind: 'text', summary: null, text: shown === null || shown === undefined ? 'null' : String(shown), open: true };
+        }
+
+        // Badge labels from the last run's actual report (tool_backend, forensics_mode, validated CrewAI report)
+        function consoleBadgeText(report, engine) {
+            if (!report) {
+                const legacy = engine === 'legacy';
+                return { mcp: legacy ? 'MCP: in-process (original loop)' : 'MCP: no run yet',
+                         crew: legacy ? 'CrewAI: not used (original loop)' : 'CrewAI: no run yet', crewTitle: '' };
+            }
+            const transports = { local: 'MCP: not used (local tools)', mcp_stdio: 'MCP: stdio transport',
+                                 mcp_http: 'MCP: streamable HTTP transport' };
+            const mcp = transports[report.tool_backend] || `MCP: ${report.tool_backend}`;
+            if (!report.forensics_mode || report.forensics_mode === 'none') return { mcp, crew: 'CrewAI: not used', crewTitle: '' };
+            const llm = report.forensics ? report.forensics.llm_review : null;
+            let crew;
+            if (!report.a2a_call || !report.a2a_call.ok || !report.forensics) crew = 'CrewAI via A2A: failed';
+            else if (!llm || llm.status === 'LLM_NOT_CONFIGURED') crew = 'CrewAI Flow via A2A (no LLM)';
+            else if (llm.status !== 'COMPLETED') crew = `CrewAI via A2A: LLM failed (${llm.status})`;
+            else crew = 'CrewAI Crew + LLM via A2A';
+            const crewTitle = llm ? `${llm.llm_provider || ''} ${llm.llm_model || ''}`.trim() : '';
+            return { mcp, crew, crewTitle };
+        }
+        // </console-helpers>
+
+        function renderConsoleBadges(report, engine) {
+            const b = consoleBadgeText(report, engine);
+            document.getElementById('mcpBadge').textContent = b.mcp;
+            const crew = document.getElementById('crewBadge');
+            crew.textContent = b.crew;
+            crew.title = b.crewTitle;
         }
 
         function renderBlackboard(bb) {
@@ -2374,20 +2666,36 @@
             if (factKeys.length === 0) {
                 factsContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No facts in working memory.</div>`;
             } else {
+                // textContent only: values can contain document text, which must never become markup
                 factKeys.forEach(k => {
                     const f = facts[k];
-                    const valStr = typeof f.value === 'object' ? JSON.stringify(f.value) : f.value;
                     const d = document.createElement('div');
-                    d.style.cssText = 'padding: 0.35rem 0.5rem; margin-bottom: 0.3rem; background: rgba(255,255,255,0.03); border-radius: 4px; border-left: 3px solid var(--accent-cyan); display: flex; justify-content: space-between; align-items: center;';
-                    d.innerHTML = `
-                        <div>
-                            <span style="color: var(--accent-cyan); font-weight: 700;">${k}</span>: 
-                            <span style="color: #fff;">${valStr}</span>
-                        </div>
-                        <span style="font-size: 0.6rem; color: var(--text-tertiary); background: rgba(255,255,255,0.05); padding: 0.1rem 0.35rem; border-radius: 3px;">
-                            ${f.source_agent || 'Investigator'}
-                        </span>
-                    `;
+                    d.className = 'bb-fact';
+                    const head = document.createElement('div');
+                    head.className = 'bb-fact-head';
+                    const key = document.createElement('span');
+                    key.className = 'bb-fact-key';
+                    key.textContent = k;
+                    const source = document.createElement('span');
+                    source.className = 'bb-fact-source';
+                    source.textContent = f.source_agent || 'Investigator';
+                    head.append(key, source);
+                    d.appendChild(head);
+
+                    const parts = consoleValueParts(f.value);
+                    const pre = document.createElement('pre');
+                    pre.className = 'bb-fact-value';
+                    pre.textContent = parts.text;
+                    if (parts.kind === 'json') {
+                        const details = document.createElement('details');
+                        details.open = parts.open;
+                        const summary = document.createElement('summary');
+                        summary.textContent = parts.summary;
+                        details.append(summary, pre);
+                        d.appendChild(details);
+                    } else {
+                        d.appendChild(pre);
+                    }
                     factsContainer.appendChild(d);
                 });
             }
@@ -2403,14 +2711,20 @@
             } else {
                 msgs.forEach(m => {
                     const d = document.createElement('div');
-                    d.style.cssText = 'padding: 0.35rem 0.5rem; margin-bottom: 0.3rem; background: rgba(129, 140, 248, 0.05); border-radius: 4px; border-left: 3px solid var(--status-indigo); font-size: 0.68rem;';
-                    d.innerHTML = `
-                        <div style="display: flex; justify-content: space-between; margin-bottom: 0.1rem;">
-                            <span style="font-weight: 700; color: #fff;">${m.sender} ➔ ${m.receiver}</span>
-                            <span style="color: var(--status-indigo); font-weight: 700;">[${m.intent}]</span>
-                        </div>
-                        <div style="color: var(--text-secondary); font-size: 0.64rem; word-break: break-all;">${JSON.stringify(m.payload).substring(0, 80)}...</div>
-                    `;
+                    d.className = 'bb-msg';
+                    const head = document.createElement('div');
+                    head.className = 'bb-msg-head';
+                    const route = document.createElement('span');
+                    route.style.cssText = 'font-weight: 700; color: #fff; overflow-wrap: anywhere; min-width: 0;';
+                    route.textContent = `${m.sender} ➔ ${m.receiver}`;
+                    const intent = document.createElement('span');
+                    intent.style.cssText = 'color: var(--status-indigo); font-weight: 700;';
+                    intent.textContent = `[${m.intent}]`;
+                    head.append(route, intent);
+                    const payload = document.createElement('div');
+                    payload.className = 'bb-msg-payload';
+                    payload.textContent = JSON.stringify(redactForConsole(m.payload));
+                    d.append(head, payload);
                     a2aContainer.appendChild(d);
                 });
                 a2aContainer.scrollTop = a2aContainer.scrollHeight;
@@ -2426,68 +2740,26 @@
             document.getElementById('metricReplans').innerText = mon.replans_triggered || 0;
         }
 
-        async function runCrewAIWorkflow() {
-            try {
-                const res = await fetch(`/api/investigate-crew/${currentScenario}`, { method: 'POST' });
-                const data = await res.json();
-                renderBlackboard(data.blackboard);
-                if (data.crew_result) {
-                    updateStatusPill(data.crew_result.status);
-                    alert(`CrewAI-style placeholder workflow finished:\nStatus: ${data.crew_result.status}\nRoles involved: ${data.crew_result.crew_agents_involved.join(' → ')}\n\n${data.crew_result.implementation}`);
-                }
-            } catch (err) {
-                console.error("CrewAI execution error:", err);
-            }
-        }
-
         function updateStatusPill(status) {
             const el = document.getElementById('systemClaimStatus');
             el.innerHTML = `<span class="status-pill status-${status}">${status.replace(/_/g, ' ')}</span>`;
         }
 
-        async function loadAuditTrail(claimId) {
-            try {
-                const res = await fetch(`/api/audit/${claimId}`);
-                const trail = await res.json();
-                renderAuditTrail(trail);
-            } catch (err) {
-                console.error("Error loading audit:", err);
-            }
-        }
-
-        function renderAuditTrail(trail) {
-            const container = document.getElementById('auditTrail');
-            container.innerHTML = '';
-            if (!trail || trail.length === 0) {
-                container.innerHTML = `<div style="font-size: 0.72rem; color: var(--text-secondary); text-align: center; padding: 1rem;">Ledger empty.</div>`;
-                return;
-            }
-
-            trail.forEach(entry => {
-                const d = document.createElement('div');
-                d.className = 'audit-entry';
-                d.innerHTML = `
-                    <div class="audit-top">
-                        <span class="audit-hash">#${entry.entry_hash || 'GENESIS'}</span>
-                        <span>${entry.timestamp ? entry.timestamp.substring(11, 19) : ''}</span>
-                    </div>
-                    <div class="audit-type">${entry.event_type}</div>
-                    <div style="color: var(--text-secondary); font-size: 0.65rem; margin-top: 0.15rem;">
-                        ${JSON.stringify(entry.details).substring(0, 85)}...
-                    </div>
-                `;
-                container.appendChild(d);
-            });
-            container.scrollTop = container.scrollHeight;
-        }
-
         // Shows what is actually running (from /api/runtime-status), not a fixed label
+        // What the CrewAI service actually did, from the validated report (never from "a reply arrived")
+        function crewaiStatusText(adkReport) {
+            if (!adkReport.a2a_call || !adkReport.a2a_call.ok || !adkReport.forensics) return 'CrewAI via A2A: FAILED (no valid report)';
+            const llm = adkReport.forensics.llm_review;
+            if (!llm || llm.status === 'LLM_NOT_CONFIGURED') return 'CrewAI: deterministic Flow only (LLM not configured)';
+            if (llm.status !== 'COMPLETED') return `CrewAI Flow ok · LLM stage FAILED (${llm.status}${llm.error_category ? ': ' + llm.error_category : ''})`;
+            return `CrewAI Crew + LLM (${llm.llm_model}): ${llm.findings.length} finding(s), ${llm.llm_calls_succeeded} model call(s)`;
+        }
+
         function renderRuntimeStatus(runtime, adkReport) {
             const el = document.getElementById('metaEngine');
             if (adkReport) {
                 el.innerText = `Google ADK ${adkReport.pipeline_backend} · ${adkReport.planner} · tools: ${adkReport.tool_backend}`
-                    + (adkReport.forensics_mode !== 'none'
-                        ? ` · CrewAI via A2A: ${adkReport.a2a_call && adkReport.a2a_call.ok ? 'ok' : 'FAILED'}` : '')
+                    + (adkReport.forensics_mode !== 'none' ? ` · ${crewaiStatusText(adkReport)}` : '')
                     + (adkReport.rag
                         ? ` · RAG: ${adkReport.rag.error ? 'FAILED' : Object.keys(adkReport.policy_citations || {}).length + ' policy citations'}` : '');
                 // Hover shows each citation's source file and section
@@ -2520,15 +2792,21 @@
             return headers;
         }
 
+        // The server decides; the panel only reflects its answer (a hidden button changes nothing server-side).
         async function adjudicate(decision, isRetry = false) {
             const notes = document.getElementById('humanNotesInput').value;
+            const claimId = currentClaimId;
+            const mySeq = investigationSeq;
+            const buttons = DECISION_ORDER.map(d => document.getElementById(`btnDecision${d}`));
+            buttons.forEach(b => { b.disabled = true; });
             try {
-                const res = await fetch(`/api/adjudicate/${currentClaimId}`, {
+                const res = await fetch(`/api/adjudicate/${claimId}`, {
                     method: 'POST',
                     headers: adjudicationHeaders(),
                     body: JSON.stringify({ decision, notes })
                 });
                 const data = await res.json();
+                if (mySeq !== investigationSeq || claimId !== currentClaimId) return;   // the user moved on
                 if ((res.status === 401 || res.status === 403) && !isRetry) {
                     const token = prompt('This server requires an adjudication token. Enter it to continue:');
                     if (token) {
@@ -2542,17 +2820,20 @@
                     return;
                 }
                 updateStatusPill(data.status);
-                renderAuditTrail(data.audit_trail);
                 renderPayout(data.payout);
-                
+                renderReviewPanel({ status: data.status, payout: data.payout, allowed: data.allowed_decisions,
+                                    requiresHuman: activeInvestigationState ? activeInvestigationState.requires_human_approval : true });
+
                 if (evidenceEngine && activeInvestigationState) {
                     activeInvestigationState.status = data.status;
                     evidenceEngine.updateRealDataState(activeInvestigationState);
                 }
-                
+
                 alert(`Human Adjudication Recorded: Claim is now ${data.status}`);
             } catch (err) {
                 console.error("Adjudication failed:", err);
+            } finally {
+                if (mySeq === investigationSeq) buttons.forEach(b => { b.disabled = false; });
             }
         }
 

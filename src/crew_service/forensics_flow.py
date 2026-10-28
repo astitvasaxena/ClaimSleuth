@@ -1,13 +1,13 @@
 """
-CrewAI forensics: a real crewai Flow (deterministic checks) plus an optional real
-crewai Crew that writes a narrative when an LLM is configured.
+CrewAI forensics: a real crewai Flow whose steps run the deterministic checks, then
+a real crewai Agent/Task/Crew backed by an LLM that analyses the same request's
+evidence (src/crew_service/llm_review.py).
 
 Runs ONLY in the separate CrewAI environment (.venv-crewai): crewai pins mcp<2 and
 pydantic<2.13, which conflict with the main app. It reuses the project's
-deterministic code (extractor, anomaly detector, policy rules) and never computes,
-proposes or authorizes a payout.
+deterministic code (extractor, anomaly detector, policy rules), which stays
+authoritative, and never computes, proposes or authorizes a payout.
 """
-import json
 import os
 import re
 from typing import Any, Dict, List, Optional
@@ -18,18 +18,20 @@ for _var, _val in (("CREWAI_DISABLE_TELEMETRY", "true"), ("CREWAI_DISABLE_TRACKI
     os.environ.setdefault(_var, _val)
 
 import crewai
-from crewai import Agent, Crew, Process, Task
 from crewai.flow.flow import Flow, listen, start
 from crewai.llms.base_llm import BaseLLM
 from pydantic import BaseModel, Field
 
 from src.agents.extractor import EvidenceExtractor
-from src.core.forensics_schema import ForensicFinding, ForensicsReport
+from src.core.forensics_schema import ForensicFinding, ForensicsReport, LLMReview
+from src.crew_service.llm_review import LLMConfig, config_for_instance, resolve_llm_config, run_llm_review
 from src.tools.anomaly_detector import flag_serial_anomalies
 from src.tools.evidence_store import EvidenceStore
 from src.tools.policy_rules import check_exclusions, load_policy
 
 CLAIM_ID_PATTERN = re.compile(r"^[A-Z]{3}-[A-Z0-9-]{3,40}$")
+FLOW_STEPS = ["load_dossier", "extract_facts", "check_serials", "check_chronology", "scan_exclusions",
+              "llm_forensic_review"]
 
 
 def is_invoice(name: str) -> bool:
@@ -44,16 +46,16 @@ class ForensicsState(BaseModel):
     incident_cause: str = ""
     findings: List[Dict[str, Any]] = Field(default_factory=list)
     steps: List[str] = Field(default_factory=list)
-    narrative: Optional[str] = None
-    narrative_source: str = "not_generated"
+    supplied_policy_evidence: List[Dict[str, Any]] = Field(default_factory=list)   # ADK's RAG citations
+    llm_review: Optional[Dict[str, Any]] = None
 
 
 class ForensicsFlow(Flow[ForensicsState]):
-    """Deterministic forensic review of one claim dossier, orchestrated by CrewAI Flow."""
+    """Forensic review of one claim dossier, orchestrated by CrewAI Flow: deterministic checks, then the LLM Crew."""
 
-    def __init__(self, llm: Optional[BaseLLM] = None, **kwargs):
+    def __init__(self, llm_config: Optional[LLMConfig] = None, **kwargs):
         super().__init__(**kwargs)
-        self._llm = llm
+        self._llm_config = llm_config or resolve_llm_config("none")
 
     @start()
     def load_dossier(self):
@@ -124,39 +126,28 @@ class ForensicsFlow(Flow[ForensicsState]):
                                     "detail": f"Matches exclusion '{matched}'" if excluded else "No exclusion matched"})
 
     @listen(scan_exclusions)
-    def write_narrative(self):
-        self.state.steps.append("write_narrative")
-        if self._llm is None:
-            return
-        crew = build_review_crew(self._llm)
-        result = crew.kickoff(inputs={"findings": json.dumps(self.state.findings)})
-        self.state.narrative = str(result.raw).strip()
-        self.state.narrative_source = f"crewai_crew:{getattr(self._llm, 'model', 'llm')}"
+    def llm_forensic_review(self):
+        """CrewAI Agent/Task/Crew + LLM on this request's evidence. Never raises: failures become a status."""
+        self.state.steps.append("llm_forensic_review")
+        review = run_llm_review(self.state.claim, self.state.documents, self.state.findings,
+                                self.state.supplied_policy_evidence, self._llm_config)
+        self.state.llm_review = review.model_dump()
 
 
-def build_review_crew(llm: BaseLLM) -> Crew:
-    """A one-agent CrewAI Crew that summarises the deterministic findings (never decides)."""
-    reviewer = Agent(
-        role="Forensic Signal Reviewer",
-        goal="Summarise forensic signals in a warranty claim for a human reviewer, without accusing anyone.",
-        backstory="An independent reviewer who reports signals and uncertainty; payouts are decided elsewhere.",
-        llm=llm, allow_delegation=False, verbose=False)
-    task = Task(
-        description=("Summarise these deterministic findings in two sentences for a human reviewer. "
-                     "Do not decide eligibility or any payout.\nFindings: {findings}"),
-        expected_output="Two plain sentences.",
-        agent=reviewer)
-    return Crew(agents=[reviewer], tasks=[task], process=Process.sequential, verbose=False)
-
-
-def run_forensics(claim: Dict[str, Any], llm: Optional[BaseLLM] = None) -> ForensicsReport:
-    """Run the CrewAI Flow for one claim and return a validated ForensicsReport."""
-    flow = ForensicsFlow(llm=llm)
-    flow.kickoff(inputs={"claim": claim})
+def run_forensics(claim: Dict[str, Any], llm: Optional[BaseLLM] = None, llm_config: Optional[LLMConfig] = None,
+                  policy_evidence: Optional[List[Dict[str, Any]]] = None) -> ForensicsReport:
+    """Run the CrewAI Flow (and its LLM Crew stage) for one claim and return a validated ForensicsReport."""
+    config = llm_config or (config_for_instance(llm) if llm is not None else None)
+    flow = ForensicsFlow(llm_config=config)
+    flow.kickoff(inputs={"claim": claim, "supplied_policy_evidence": list(policy_evidence or [])})
     findings = [ForensicFinding(**f) for f in flow.state.findings]
     flagged = any(f.result == "FLAG" for f in findings)
+    review = LLMReview(**flow.state.llm_review) if flow.state.llm_review else None
+    completed = review is not None and review.status == "COMPLETED"
     return ForensicsReport(
         claim_id=claim["claim_id"], findings=findings,
         recommendation="ESCALATE_FOR_REVIEW" if flagged else "NO_FORENSIC_ISSUES",
-        narrative=flow.state.narrative, narrative_source=flow.state.narrative_source,
-        flow_steps=list(flow.state.steps), crewai_version=crewai.__version__, service_pid=os.getpid())
+        narrative=review.summary if completed else None,
+        narrative_source=f"crewai_crew:{review.llm_provider}/{review.llm_model}" if completed else "not_generated",
+        flow_steps=list(flow.state.steps), crewai_flow_executed=list(flow.state.steps) == FLOW_STEPS,
+        llm_review=review, crewai_version=crewai.__version__, service_pid=os.getpid())

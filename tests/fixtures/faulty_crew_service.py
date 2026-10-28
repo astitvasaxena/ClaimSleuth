@@ -13,6 +13,7 @@ Control file contents (one word, optionally ":<seconds>"):
     wrong_claim   return a report for a different claim
     fail          raise inside the executor (A2A task fails)
     garbage       return text that is not a ForensicsReport
+    fake_llm_claim  claim an LLM review COMPLETED without an executed Crew or LLM call
 """
 import json
 import sys
@@ -32,7 +33,7 @@ def _fault() -> str:
 
 
 class FaultyExecutor(CrewForensicsExecutor):
-    def produce_report_json(self, claim):
+    def produce_report_json(self, claim, policy_evidence=None):
         fault = _fault()
         if fault.startswith("delay:"):
             time.sleep(float(fault.split(":", 1)[1]))
@@ -41,7 +42,10 @@ class FaultyExecutor(CrewForensicsExecutor):
             raise RuntimeError("injected executor failure")
         if fault == "garbage":
             return "this is not a forensics report"
-        report = json.loads(super().produce_report_json(claim))
+        report = json.loads(super().produce_report_json(claim, policy_evidence))
+        if fault == "fake_llm_claim":     # says the LLM ran when it did not: ADK must reject the report
+            report["llm_review"] = {**(report.get("llm_review") or {}), "status": "COMPLETED",
+                                    "crewai_crew_executed": False, "llm_call_performed": False}
         if fault == "contradict":
             for f in report["findings"]:
                 if f["check"] == "serial_consistency":

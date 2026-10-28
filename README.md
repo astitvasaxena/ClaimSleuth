@@ -27,9 +27,9 @@ Built for academic presentation and real-world compliance, ClaimSleuth solves th
 5. **Human-in-the-Loop (HITL) Gate**:
    - Consequential decisions (payouts $> \$150$, rejections, and fraud/serial escalations) require one-click human authorization.
    - Secured `/api/adjudicate/{claim_id}` endpoint with Bearer token authorization.
-6. **Cryptographic Append-Only Audit Ledger**:
-   - Every tool execution, state mutation, and verifier decision is hashed in a SHA-256 chain log (`.jsonl`).
-   - Integrated `verify_chain()` method to mathematically detect tampering.
+6. **Hash-Chained Append-Only Audit Ledger**:
+   - Every tool execution, state mutation, and verifier decision is recorded in a SHA-256 hash chain (`.jsonl`).
+   - `verify_chain()`, exposed as `GET /api/audit/{claim_id}/verify`, recomputes the chain and reports whether the recorded chain is still intact, so an edited or removed entry shows up as a broken link. On its own this does not make the log tamper-proof: someone able to rewrite the whole file could build a new, consistent chain.
 
 ---
 
@@ -45,7 +45,7 @@ What actually runs today. `GET /api/runtime-status` reports the same thing from 
 | Dual-gate verifier, human approval with state-transition guard, hash-chained audit ledger | Working, tested |
 | MCP | **Remote server over stdio and streamable HTTP** (`src/mcp/remote_server.py`, 6 tools). The ADK pipeline uses it through ADK's `McpToolset` with `tools=mcp_stdio|mcp_http` (verified with a server-side call log). The original loop still calls the legacy server **in-process**. No authentication: localhost only. |
 | Google ADK | **Executed** via `POST /api/adk/investigate/{scenario}` (real `Runner` + session state; `Workflow` and `SequentialAgent` backends), selectable in the dashboard; results go through the same human-adjudication rules. The dashboard's default engine is still the original loop. |
-| CrewAI | **Real `crewai` 1.15.30** in a separate environment (`.venv-crewai`): a CrewAI `Flow` runs the forensic checks and an optional CrewAI `Crew` writes a narrative (tested with a fake LLM only). Used via `?forensics=crewai_a2a`. The old `/api/investigate-crew` endpoint is still a placeholder that does not use crewai. |
+| CrewAI | **Real `crewai` 1.15.30** in a separate environment (`.venv-crewai`): a CrewAI `Flow` runs the deterministic forensic checks, then an LLM-backed CrewAI `Agent`/`Task`/`Crew` analyses the same request's evidence and returns cited, validated findings that can only escalate. The LLM is Gemini by default (`--llm auto`), or NVIDIA Nemotron through OpenRouter only when selected with `--llm openrouter/nvidia/nemotron-3.5-super-vl:free`. Each run reports what actually executed (`forensics.llm_review`: status, model, Crew executed, LLM calls, tokens); without an API key it says `LLM_NOT_CONFIGURED`. Used via `?forensics=crewai_a2a`. **Live checks with Nemotron:** six completed reviews (Scenario 3 ×3, escalated and not payable; Scenario 1 ×3, $251 still only proposed) are recorded in local, gitignored run reports. The first Scenario 3 run is written up in [docs/CREWAI.md](docs/CREWAI.md), and one more Scenario 3 run was verified directly during the final repository review. Gemini (the default) reached the Crew but returned 503 every time. See [docs/CREWAI.md](docs/CREWAI.md). |
 | RAG | **Local retrieval over policy wording + claim documents** (`src/rag/`, all-MiniLM-L6-v2 embeddings, exact NumPy index, labelled TF-IDF fallback). `PolicyRetrievalAgent` runs in all three ADK patterns; the verifier cross-checks the cited wording against the terms used for the money and escalates or blocks on mismatch, injection or missing wording. RAG never sets or approves a payout. Synthetic corpus. See [docs/RAG.md](docs/RAG.md). |
 | A2A | **ADK `RemoteA2aAgent` → CrewAI service over HTTP** (a2a-sdk 1.3.0, Agent Card + JSON-RPC), verified with a service-side request log. ADK marks its A2A support experimental. No authentication: localhost only. The in-memory `A2AMessage` log in `blackboard.py` is not the protocol. |
 
@@ -59,7 +59,7 @@ What actually runs today. `GET /api/runtime-status` reports the same thing from 
 python -m pip install -r requirements.txt
 python -m pytest tests/ -v
 ```
-*(212 tests passing and 2 live Gemini tests skipped without a key, as of 27 Oct 2026. The CrewAI A2A tests need `.venv-crewai`, see below; without it they are skipped.)* The test package redirects the audit ledger to a temporary directory, so test runs (pytest or unittest) never write inside the repository.
+*(Recorded run on 28 Oct 2026, `python -m pytest tests/ -q -rs`: 268 passed, 2 skipped. The skips are the live Gemini tests in `tests/live/`, which need `GOOGLE_API_KEY` and `CLAIMSLEUTH_LIVE_TESTS=1`. The CrewAI tests need `.venv-crewai` (see below), and the dashboard tests need Node.js, plus Chrome or Edge for the browser part; without them those tests are skipped, so counts can differ on other machines.)* The test package redirects the audit ledger to a temporary directory, so test runs (pytest or unittest) never write inside the repository.
 
 ### 2. Google ADK pipeline (runs alongside the original loop)
 
@@ -119,13 +119,42 @@ It runs as its own service in its own virtual environment and is reached only ov
 ```bash
 python -m venv .venv-crewai
 .venv-crewai/Scripts/python -m pip install -r requirements-crewai-service.txt     # ~900 MB
-.venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101          # Agent Card: /.well-known/agent-card.json
+
+# Default (--llm auto): Gemini (GEMINI_MODEL) if GOOGLE_API_KEY or GEMINI_API_KEY is available to the service
+.venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101 --env-file .env
+
+# NVIDIA Nemotron through OpenRouter: used only when selected explicitly (needs OPENROUTER_API_KEY)
+.venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101 --env-file .env --llm openrouter/nvidia/nemotron-3.5-super-vl:free
+
+# No LLM stage: deterministic Flow only, reported as LLM_NOT_CONFIGURED
+.venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101 --llm none
+# Agent Card: http://127.0.0.1:8101/.well-known/agent-card.json
 ```
 
 Then call `POST /api/adk/investigate/{scenario}?forensics=crewai_a2a` (or pick *ADK + MCP + CrewAI forensics* in the
-dashboard). ADK's `RemoteA2aAgent` sends the claim to the service, the CrewAI `ForensicsFlow` checks serial
-consistency, purchase/incident chronology and exclusions, and returns a `ForensicsReport`
-(`src/core/forensics_schema.py`). That schema has no payout or approval fields; extra fields are rejected.
+dashboard). ADK's `RemoteA2aAgent` sends the claim ID and the RAG policy citations to the service. The service runs two stages:
+1. **CrewAI `ForensicsFlow` (fixed rules, authoritative):** checks that documents are present, serial consistency,
+   purchase/incident chronology and exclusions.
+2. **CrewAI `Agent`/`Task`/`Crew` with an LLM (advisory):** reviews the same evidence and returns findings in JSON that
+   cite evidence IDs (`src/crew_service/llm_review.py`). Names, card details and emails are redacted before anything is
+   sent to the model. A finding that cites an unknown evidence ID or a quote not found in the cited item is rejected, and an
+   answer containing any payout or approval field is rejected entirely.
+
+It returns one `ForensicsReport` (`src/core/forensics_schema.py`). That schema has no payout or approval fields; extra
+fields are rejected.
+
+**Choosing the LLM:**
+- The model is chosen when the service starts, with `--llm` (or `CLAIMSLEUTH_CREWAI_LLM`). The dashboard cannot change it.
+- `auto` is the default and means Gemini. **Adding `OPENROUTER_API_KEY` alone does not change the default**; Nemotron is
+  used only with `--llm openrouter/<model id>`.
+- Keys come only from the service's own process environment. CrewAI itself loads the project `.env` when the service starts
+  from the project folder, and `--env-file` loads only the LLM-related keys. Key values are never printed or logged.
+
+**What the LLM result means for the claim:**
+- LLM findings can only escalate a claim.
+- An LLM error, timeout or invalid answer makes the claim fail closed (`NEEDS_EVIDENCE`).
+- With no LLM configured, the run is labelled deterministic-only and the outcome is unchanged.
+- Details: [docs/CREWAI.md](docs/CREWAI.md).
 The deterministic `ForensicsReviewAgent` escalates any CrewAI flag or any disagreement with ADK's own anomaly check,
 and fails closed (`NEEDS_EVIDENCE`) if the service is down, times out, or returns an invalid report.
 CrewAI telemetry is disabled in the service. Service URL: `CLAIMSLEUTH_CREWAI_A2A_URL` (default `http://127.0.0.1:8101`).
@@ -231,9 +260,11 @@ claim_sleuth/
 │   ├── benchmark/                 # Seeded synthetic benchmark: claims/, labels/, manifest.json, heldout_runs.jsonl
 │   ├── audit_logs/                # LEGACY ledgers from 850d757 with INVALID chains (kept as evidence; see LEGACY_INVALID_README.md)
 │   └── runtime/audit_logs/        # Ledgers written by the running app (gitignored)
+├── docs/                          # RAG.md (retrieval design and results), CREWAI.md (CrewAI service, LLM setup, live runs)
 ├── src/
 │   ├── adk_app/                   # Google ADK path: steps (agents), tools, pipeline backends, FinalReport
-│   ├── crew_service/              # CrewAI ForensicsFlow + A2A server (runs in .venv-crewai)
+│   ├── crew_service/              # CrewAI ForensicsFlow + LLM review (llm_review.py) + A2A server (runs in .venv-crewai)
+│   ├── rag/                       # RAG: policy corpus, embedding retriever with NumPy index, policy evidence, evaluation
 │   ├── eval/                      # Benchmark dataset + harness, pattern comparison, SVG plots
 │   ├── core/
 │   │   ├── state.py               # Pydantic schemas (AgentAction, InvestigationStep, EvidenceItem)
@@ -263,12 +294,17 @@ claim_sleuth/
     ├── test_mcp_remote.py         # MCP over stdio + streamable HTTP, separate server process (17 tests)
     ├── test_adk_mcp.py            # ADK pipeline through McpToolset; server failures; tampered results (15 tests)
     ├── test_adk_adjudication.py   # ADK results through human adjudication + dashboard compatibility (12 tests)
-    ├── test_crewai_a2a.py         # ADK <-> CrewAI over A2A: protocol, pipeline, failures, conflicts (17 tests)
+    ├── test_crewai_a2a.py         # ADK <-> CrewAI over A2A: protocol, pipeline, failures, conflicts, fake-LLM Crew (30 tests)
     ├── test_patterns.py           # Sequential / parallel / hierarchical x blackboard / direct / broadcast (16 tests)
     ├── test_guardrails.py         # Validation, injection, toxicity; blocked claims never payable (12 tests)
     ├── test_tracing.py            # Trace ids across ADK spans, audit and the MCP server; per-agent metrics (7 tests)
     ├── test_benchmark.py          # Dataset reproducibility, held-out discipline, plots, harness (11 tests)
-    ├── crew_service/              # CrewAI unit tests, run inside .venv-crewai (8 tests)
-    ├── fixtures/faulty_mcp_server.py # Fault-injection MCP server used by the tests
+    ├── test_rag.py                # RAG retrieval, citations, safe failure, injection, ADK integration (23 tests)
+    ├── test_dashboard_console.py  # Technical Console layout rules, JSON display, redaction, badges (6 tests; Node for 3)
+    ├── test_dashboard_dossier.py  # Evidence Dossier & Human Review, summary row; real headless-browser checks (12 tests)
+    ├── test_dashboard_ledger_panel.py # Ledger panel removed; audit log and endpoints unchanged (3 tests)
+    ├── crew_service/test_forensics_flow.py # CrewAI Flow + Crew (fake LLM), LLM config, validation; run inside .venv-crewai (32 tests)
+    ├── fixtures/                  # faulty_mcp_server.py, faulty_crew_service.py (fault injection), fake_crewai_llm.py
+    │                              # (test-double LLM), dashboard_browser_check.mjs (headless-Chrome dashboard driver)
     └── live/                      # Live Gemini tests (skipped unless explicitly enabled)
 ```

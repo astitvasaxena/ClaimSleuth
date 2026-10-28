@@ -5,7 +5,15 @@
 #   python -m venv .venv-crewai
 #   .venv-crewai/Scripts/python -m pip install -r requirements-crewai-service.txt     (Windows)
 #   .venv-crewai/bin/python -m pip install -r requirements-crewai-service.txt         (macOS/Linux)
-#   .venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101
+#   .venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101 --env-file .env
+#   (add --llm openrouter/nvidia/nemotron-3.5-super-vl:free to use NVIDIA Nemotron instead)
+#
+# The CrewAI agent's LLM is reached through CrewAI's OpenAI-style providers (the openai SDK
+# comes with crewai), so neither route needs an extra package:
+#   - default (--llm auto): Gemini through its OpenAI-compatible endpoint (GOOGLE_API_KEY);
+#   - optional, explicit (--llm openrouter/<model id>): OpenRouter (OPENROUTER_API_KEY).
+# CrewAI's native Gemini provider would instead need crewai[google-genai] (google-genai~=1.65);
+# it is not installed. See docs/CREWAI.md.
 #
 # Verified 2026-10-27 on Python 3.12.10 (pip check clean). Installs ~900 MB (chromadb,
 # onnxruntime, pyarrow, lancedb come with crewai).

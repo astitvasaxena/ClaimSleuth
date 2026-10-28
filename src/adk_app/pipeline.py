@@ -307,7 +307,7 @@ def _find_exception(exc: BaseException, cls):
 
 async def _run_async(claim: Dict[str, Any], backend: Backend, model: Optional[Union[str, BaseLlm]],
                      run_id: str, planner: str, tools: ToolBackend, mcp: McpConfig,
-                     forensics: str = "none", a2a_url: str = "", a2a_timeout: float = 120.0,
+                     forensics: str = "none", a2a_url: str = "", a2a_timeout: float = 150.0,
                      opts: Optional[RunOptions] = None, prompt_variant: str = "baseline") -> AdkRunResult:
     opts = opts or RunOptions()
     toolsets, closers = [], []
@@ -385,7 +385,7 @@ def run_adk_investigation(claim: Dict[str, Any], backend: Backend = "workflow",
                           model: Optional[Union[str, BaseLlm]] = None, use_llm: Optional[bool] = None,
                           fallback_on_model_error: bool = True, tools: ToolBackend = "local",
                           mcp: Optional[McpConfig] = None, forensics: str = "none",
-                          a2a_url: Optional[str] = None, a2a_timeout: float = 120.0,
+                          a2a_url: Optional[str] = None, a2a_timeout: float = 150.0,
                           pattern: str = "sequential", messaging: str = "blackboard",
                           drop_routes=None, prompt_variant: str = "baseline", rag: bool = True) -> AdkRunResult:
     """

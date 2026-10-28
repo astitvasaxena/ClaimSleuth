@@ -140,8 +140,19 @@ def to_markdown(report: FinalReport) -> str:
     if report.forensics_mode != "none":
         lines += ["", "## CrewAI forensics (via A2A, advisory)", "", f"- Service: {report.forensics_mode}"]
         if report.forensics:
-            lines.append(f"- Recommendation: {report.forensics['recommendation']}")
+            lines.append(f"- CrewAI Flow executed: {report.forensics.get('crewai_flow_executed')}; "
+                         f"deterministic recommendation: {report.forensics['recommendation']}")
             lines += [f"- {f['check']}: {f['result']} ({f['detail']})" for f in report.forensics["findings"]]
+            review = report.forensics.get("llm_review") or {}
+            lines.append(f"- CrewAI agent (LLM): status {review.get('status', 'not attempted')}"
+                         + (f" ({review['error_category']})" if review.get("error_category") else "")
+                         + f"; provider {review.get('llm_provider') or '—'}, model {review.get('llm_model') or '—'}; "
+                         f"Crew executed {review.get('crewai_crew_executed', False)}, "
+                         f"LLM calls {review.get('llm_calls_succeeded', 0)}/{review.get('llm_call_attempts', 0)}, "
+                         f"tokens {review.get('prompt_tokens')}/{review.get('completion_tokens')}")
+            lines += [f"  - {f['finding_type']} ({f['severity']}, uncertainty {f['uncertainty']}): {f['explanation']} "
+                      f"[{', '.join(f['source_refs'])}]" for f in review.get("findings", [])]
+            lines += [f"  - rejected: {r['finding_type']} ({r['reason']})" for r in review.get("rejected_findings", [])]
         else:
             lines.append("- No valid forensics report (see tool errors)")
     if report.rag is not None:
