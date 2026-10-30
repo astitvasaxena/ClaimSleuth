@@ -40,6 +40,10 @@ MAX_LLM_CALLS = 30
 RUN_TIMEOUT_S = 15 * 60
 MODEL_RETRY_ATTEMPTS = 5          # retries on 429/5xx from the model API (Gemini returned 503s during the build)
 
+# Model prices in USD per million tokens, from the provider's price list, with the date they were read.
+# Cost is reported only for models listed here; for any other model it is "not measured".
+PRICES: dict[str, dict] = {}
+
 # Paths. DATA_DIR holds everything the app writes; override it in containers.
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data" / "runtime"))
 POLICIES_FILE = BASE_DIR / "configs" / "policies.json"

@@ -16,7 +16,7 @@ from claimsleuth import config
 from claimsleuth.agents.common import (BB_CLAIM, BB_CREW_METRICS, BB_DOCUMENTS, BB_FACTS, BB_FRAUD, SECRET_HEADER,
                                        add_guardrail_hit, read)
 from claimsleuth.models import Fraud, GuardrailHit
-from claimsleuth.tracing import traceparent_headers
+from claimsleuth.tracing import append_span_records, traceparent_headers
 
 NAME = "fraud_crew"
 DESCRIPTION = ("CrewAI fraud crew (Forensics analyst and History analyst) over A2A: checks the documents against each "
@@ -47,6 +47,7 @@ def _capture_reply(callback_context):
         add_guardrail_hit(state, GuardrailHit(kind="bad_output", where=NAME, detail=f"unusable crew reply: {detail}"))
         return None
     state[BB_FRAUD] = fraud.model_dump_json()
+    append_span_records(reply.get("spans") or [])
     state[BB_CREW_METRICS] = json.dumps(reply.get("metrics") or {})
     return None
 

@@ -10,6 +10,7 @@ from google.adk.tools.mcp_tool import McpToolset, StreamableHTTPConnectionParams
 from google.genai import types
 
 from claimsleuth import config
+from claimsleuth.tracing import traceparent_headers
 from claimsleuth.models import (Coverage, Facts, FinalReport, Fraud, GuardrailHit, ManagerSubmission, Payout,
                                 review_level)
 
@@ -31,11 +32,12 @@ def model() -> Gemini:
 
 
 def mcp_tools(*names: str) -> McpToolset:
-    """MCP tools from the app's /mcp endpoint, limited to the names an agent is allowed to use."""
+    """MCP tools from the app's /mcp endpoint, limited to the names an agent is allowed to use. Each request carries
+    the shared secret and the current W3C traceparent, so the MCP server's spans join the run's trace."""
     return McpToolset(
         connection_params=StreamableHTTPConnectionParams(
             url=config.MCP_URL, headers={SECRET_HEADER: config.A2A_SHARED_SECRET}, timeout=60, sse_read_timeout=120),
-        tool_filter=list(names))
+        tool_filter=list(names), header_provider=lambda _ctx: traceparent_headers())
 
 
 def planner(style: str):
@@ -98,13 +100,22 @@ def submit_report(submission: ManagerSubmission, tool_context: ToolContext) -> d
     elif sub.payout_amount is not None and Decimal(sub.payout_amount) != payout.amount:
         add_guardrail_hit(state, GuardrailHit(kind="bad_output", where="submit_report",
                                               detail=f"stated payout {sub.payout_amount} replaced by computed {payout.amount}"))
+    from claimsleuth.agents.quote_check import check_quote
+    evidence, cache = [], {}
+    for quote in sub.evidence:
+        problem = check_quote(quote, cache)
+        if problem:
+            add_guardrail_hit(state, GuardrailHit(kind="bad_quote", where="submit_report",
+                                                  detail=f"{quote.doc_id} line {quote.line}: {problem}"))
+        else:
+            evidence.append(quote)
     run = read(state, BB_RUN) or {}
     hits = [GuardrailHit.model_validate(h) for h in (read(state, BB_GUARDRAIL_HITS) or [])]
     review = review_level(sub.decision, payout, fraud)
     if any(h.kind == "bad_output" and h.where == "fraud_crew" for h in hits):
         review = "full_review"                      # the fraud checks did not produce a usable result
     report = FinalReport(claim_id=read(state, BB_CLAIM)["id"], decision=sub.decision, payout=payout,
-                         reasons=sub.reasons, evidence=sub.evidence, coverage=coverage, fraud=fraud,
+                         reasons=sub.reasons, evidence=evidence, coverage=coverage, fraud=fraud,
                          guardrail_hits=hits, review=review,
                          pattern=run.get("pattern", ""), prompt_style=run.get("prompt_style", ""))
     state[BB_REPORT] = report.model_dump_json()

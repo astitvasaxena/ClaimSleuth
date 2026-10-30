@@ -12,6 +12,7 @@ for _var, _val in (("CREWAI_DISABLE_TELEMETRY", "true"), ("CREWAI_DISABLE_TRACKI
     os.environ.setdefault(_var, _val)          # before crewai is imported: no telemetry leaves this service
 
 import json
+import secrets
 import threading
 import time
 from collections import defaultdict
@@ -37,9 +38,17 @@ def build_llm() -> LLM:
     return LLM(model=f"gemini/{config.GEMINI_MODEL}", api_key=config.GOOGLE_API_KEY, temperature=0)
 
 
-def mcp(*tools: str) -> MCPServerHTTP:
-    return MCPServerHTTP(url=config.MCP_URL, headers={SECRET_HEADER: config.A2A_SHARED_SECRET},
+def mcp(*tools: str, traceparent: str = "") -> MCPServerHTTP:
+    headers = {SECRET_HEADER: config.A2A_SHARED_SECRET, **({"traceparent": traceparent} if traceparent else {})}
+    return MCPServerHTTP(url=config.MCP_URL, headers=headers,
                          tool_filter=create_static_tool_filter(allowed_tool_names=list(tools)))
+
+
+def span(trace_id: str, span_id: str, parent: str, name: str, start_ns: int, end_ns: int, **attributes) -> dict:
+    """A span record in the app's trace-file format (OpenTelemetry's SDK is disabled in this service)."""
+    return {"trace_id": trace_id, "span_id": span_id, "parent_span_id": parent, "name": name, "start_ns": start_ns,
+            "end_ns": end_ns, "duration_ms": round((end_ns - start_ns) / 1e6, 3), "status": "OK",
+            "attributes": {"service": "claimsleuth-crew", **attributes}}
 
 
 # Tool calls made by each agent (by agent id), recorded from CrewAI's event bus. Agents are built fresh per
@@ -96,6 +105,8 @@ class Metrics:
 
     def __init__(self):
         self.steps = 0
+        self.task_done_at: list[float] = []
+        self.task_done_ns: list[int] = []
         self.tasks: list[str] = []
 
     def on_step(self, step) -> None:
@@ -103,6 +114,8 @@ class Metrics:
 
     def on_task(self, output) -> None:
         self.tasks.append(getattr(output, "agent", "") or "")
+        self.task_done_at.append(time.perf_counter())
+        self.task_done_ns.append(time.time_ns())
 
 
 def usage(llm: LLM) -> dict:
@@ -111,19 +124,24 @@ def usage(llm: LLM) -> dict:
             "llm_calls": summary.successful_requests}
 
 
-def run_crew(request: dict, documents: dict[str, dict[int, str]]) -> dict:
-    """request: claim_id, claimant, documents (ids), facts (from the ADK blackboard). Returns Fraud + metrics."""
+def run_crew(request: dict, documents: dict[str, dict[int, str]], traceparent: str = "") -> dict:
+    """request: claim_id, claimant, documents (ids), facts (from the ADK blackboard). Returns Fraud, metrics and,
+    when the caller sent a W3C traceparent, span records for the crew and its two tasks."""
+    parts = (traceparent or "").split("-")
+    trace_id, caller_span = (parts[1], parts[2]) if len(parts) == 4 and len(parts[1]) == 32 else ("", "")
+    crew_span = secrets.token_hex(8)
+    child_traceparent = f"00-{trace_id}-{crew_span}-01" if trace_id else ""
     forensics_llm, history_llm = build_llm(), build_llm()
     forensics = Agent(
         role="Forensics analyst",
         goal="Find inconsistencies between a warranty claim's documents and the customer's statement.",
         backstory="You examine invoices and repair reports for a warranty insurer and cite every finding.",
-        llm=forensics_llm, mcps=[mcp("parse_document")], allow_delegation=False, max_iter=8, verbose=False)
+        llm=forensics_llm, mcps=[mcp("parse_document", traceparent=child_traceparent)], allow_delegation=False, max_iter=8, verbose=False)
     history = Agent(
         role="History analyst",
         goal="Find earlier claims that make this claim suspicious.",
         backstory="You check claim history records for repeat and duplicate warranty claims.",
-        llm=history_llm, mcps=[mcp("claim_history")], allow_delegation=False, max_iter=6, verbose=False)
+        llm=history_llm, mcps=[mcp("claim_history", traceparent=child_traceparent)], allow_delegation=False, max_iter=6, verbose=False)
     schema = json.dumps(Fraud.model_json_schema())
     doc_ids = list(request.get("documents", []))
     forensic_task = Task(
@@ -152,19 +170,29 @@ def run_crew(request: dict, documents: dict[str, dict[int, str]]) -> dict:
     metrics = Metrics()
     crew = Crew(agents=[forensics, history], tasks=[forensic_task, history_task], process=Process.sequential,
                 step_callback=metrics.on_step, task_callback=metrics.on_task, verbose=False)
-    started = time.perf_counter()
+    started, started_ns = time.perf_counter(), time.time_ns()
     result = crew.kickoff(inputs={"claim_id": request["claim_id"], "claimant": request.get("claimant", ""),
                                   "documents": ", ".join(request.get("documents", [])),
                                   "facts": json.dumps(request.get("facts") or {}),
                                   "statement": request.get("statement", "")})
     seconds = round(time.perf_counter() - started, 2)
     fraud = result.pydantic if isinstance(result.pydantic, Fraud) else Fraud.model_validate_json(result.raw)
-    per_agent = {"forensics": {**usage(forensics_llm), "tool_calls": len(tools_used(forensics))},
-                 "history": {**usage(history_llm), "tool_calls": len(tools_used(history))}}
+    done = metrics.task_done_at + [time.perf_counter()] * 2          # the tasks run in order: forensics, history
+    per_agent = {"forensics": {**usage(forensics_llm), "tool_calls": len(tools_used(forensics)),
+                               "seconds": round(done[0] - started, 2)},
+                 "history": {**usage(history_llm), "tool_calls": len(tools_used(history)),
+                             "seconds": round(done[1] - done[0], 2)}}
     with _TOOL_USE_LOCK:
         TOOL_USE.pop(str(forensics.id), None)
         TOOL_USE.pop(str(history.id), None)
-    return {"fraud": fraud.model_dump(mode="json"),
+    spans = []
+    if trace_id:
+        end_ns = time.time_ns()
+        ends = metrics.task_done_ns + [end_ns] * 2
+        spans = [span(trace_id, crew_span, caller_span, "crewai.crew", started_ns, end_ns, claim_id=request["claim_id"]),
+                 span(trace_id, secrets.token_hex(8), crew_span, "crewai.task.forensics", started_ns, ends[0]),
+                 span(trace_id, secrets.token_hex(8), crew_span, "crewai.task.history", ends[0], ends[1])]
+    return {"fraud": fraud.model_dump(mode="json"), "spans": spans,
             "metrics": {"seconds": seconds, "steps": metrics.steps,
                         "tool_calls": sum(a["tool_calls"] for a in per_agent.values()),
                         "tasks_completed": len(metrics.tasks),

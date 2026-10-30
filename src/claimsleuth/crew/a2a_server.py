@@ -31,7 +31,7 @@ from claimsleuth.crew.crew import SECRET_HEADER, run_crew
 
 AGENT_CARD_PATH = "/.well-known/agent-card.json"
 CLAIM_ID_RE = re.compile(r"Investigate claim ([A-Za-z0-9][A-Za-z0-9_-]{2,60})")
-REQUEST_TRACE_ID: contextvars.ContextVar = contextvars.ContextVar("request_trace_id", default=None)
+REQUEST_TRACEPARENT: contextvars.ContextVar = contextvars.ContextVar("request_traceparent", default="")
 
 
 class GuardMiddleware:
@@ -52,12 +52,11 @@ class GuardMiddleware:
                         "headers": [(b"content-type", b"application/json")]})
             await send({"type": "http.response.body", "body": body})
             return
-        parts = headers.get("traceparent", "").split("-")
-        token = REQUEST_TRACE_ID.set(parts[1] if len(parts) == 4 and len(parts[1]) == 32 else None)
+        token = REQUEST_TRACEPARENT.set(headers.get("traceparent", ""))
         try:
             await self.app(scope, receive, send)
         finally:
-            REQUEST_TRACE_ID.reset(token)
+            REQUEST_TRACEPARENT.reset(token)
 
 
 def parse_request(text: str) -> dict:
@@ -104,8 +103,7 @@ class CrewExecutor(AgentExecutor):
         await updater.start_work()
         try:
             documents = await fetch_documents(request.get("documents", []))
-            reply = await asyncio.to_thread(run_crew, request, documents)
-            reply["metrics"]["trace_id"] = REQUEST_TRACE_ID.get()
+            reply = await asyncio.to_thread(run_crew, request, documents, REQUEST_TRACEPARENT.get())
         except Exception as exc:                                     # reported to ADK, which records bad_output
             print(f"[crew] {request['claim_id']} failed: {type(exc).__name__}: {exc}", file=sys.stderr)
             await updater.failed(new_text_message(f"Fraud crew failed: {type(exc).__name__}: {str(exc)[:300]}",

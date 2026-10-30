@@ -53,3 +53,14 @@ class TestPatterns(unittest.TestCase):
         b, _ = patterns.build("hierarchical", "direct")
         self.assertIsNot(a, b)
         self.assertTrue(all(x.agent is not y.agent for x, y in zip(a.tools, b.tools) if isinstance(x, AgentTool)))
+
+
+class TestCallbacksAttached(unittest.TestCase):
+
+    def test_every_agent_has_the_callbacks(self):
+        from claimsleuth.callbacks.hooks import has_callbacks
+        for pattern in patterns.PATTERNS:
+            root, _ = patterns.build(pattern, "direct")
+            for agent in all_agents(root):
+                with self.subTest(pattern=pattern, agent=agent.name):
+                    self.assertTrue(has_callbacks(agent))

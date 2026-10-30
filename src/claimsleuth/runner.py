@@ -22,6 +22,7 @@ from google.genai import types
 
 from claimsleuth import audit, config, db, tracing
 from claimsleuth.agents import patterns
+from claimsleuth.callbacks import metrics
 from claimsleuth.agents.common import (BB_CLAIM, BB_DOCUMENTS, BB_GUARDRAIL_HITS, BB_REPORT, BB_RUN, PROMPT_STYLES,
                                        read)
 from claimsleuth.models import ClaimRecord, FinalReport, to_markdown
@@ -73,6 +74,7 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
     await sessions.create_session(app_name=APP_NAME, user_id="adjuster", session_id=run_id,
                                   state=initial_state(claim, documents, run))
     status, error, report = "failed", None, None
+    recorder = metrics.start_run(run_id, on_event)
     tracing.setup_tracing()
     try:
         with tracing.investigation_span(claim_id, run_id, {"pattern": pattern, "prompt_style": prompt_style}) as trace_id:
@@ -82,8 +84,9 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
             async with asyncio.timeout(config.RUN_TIMEOUT_S):
                 async for event in runner.run_async(user_id="adjuster", session_id=run_id, new_message=message,
                                                     run_config=RunConfig(max_llm_calls=config.MAX_LLM_CALLS)):
-                    if on_event:
-                        await on_event(event_summary(event))
+                    summary = event_summary(event)
+                    if summary["type"] in ("text", "error") and summary["text"]:
+                        await recorder.emit(summary["agent"], summary["type"], summary["text"])
         state = (await sessions.get_session(app_name=APP_NAME, user_id="adjuster", session_id=run_id)).state
         if state.get(BB_REPORT):
             report = FinalReport.model_validate(read(state, BB_REPORT))
@@ -97,9 +100,17 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
     finally:
         for toolset in toolsets:
             await toolset.close()
+        metrics.finish_run(run_id)
     seconds = round(time.perf_counter() - started, 2)
+    totals = recorder.totals()
     with db.connect() as conn:
-        conn.execute("UPDATE runs SET seconds = ?, status = ?, error = ? WHERE id = ?", (seconds, status, error, run_id))
+        conn.execute("UPDATE runs SET seconds = ?, status = ?, error = ?, prompt_tokens = ?, completion_tokens = ?,"
+                     " cost_usd = ? WHERE id = ?", (seconds, status, error, totals["prompt_tokens"],
+                                                    totals["completion_tokens"], totals["cost_usd"], run_id))
+        conn.executemany("INSERT INTO agent_metrics (run_id, agent, seconds, prompt_tokens, completion_tokens,"
+                         " llm_calls, tool_calls, errors, guardrail_hits) VALUES (:run_id, :agent, :seconds,"
+                         " :prompt_tokens, :completion_tokens, :llm_calls, :tool_calls, :errors, :guardrail_hits)",
+                         [{"run_id": run_id, **row} for row in recorder.as_rows()])
         if report:
             conn.execute("INSERT INTO reports (claim_id, run_id, report_json, report_md, created_at)"
                          " VALUES (?, ?, ?, ?, ?)", (claim_id, run_id, report.model_dump_json(),
@@ -107,6 +118,7 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
             conn.execute("UPDATE claims SET status = ? WHERE id = ?", (f"decided:{report.decision}", claim_id))
     ledger.log_step(1, "RUN_FINISHED", f"{status} in {seconds} s", reasoning=error or (report.decision if report else None))
     return {"run_id": run_id, "status": status, "error": error, "seconds": seconds, "trace_id": run.get("trace_id"),
+            "metrics": recorder.as_rows(), **totals,
             "report": report.model_dump(mode="json") if report else None}
 
 

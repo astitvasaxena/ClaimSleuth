@@ -5,7 +5,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 
-from claimsleuth import config, db
+from claimsleuth import config, db, tracing
 from claimsleuth.mcp_server import server as mcp_server
 
 NO_KEY_MESSAGE = "No model key configured; investigations are disabled"
@@ -46,6 +46,11 @@ async def guard(request: Request, call_next):
     if path == "/mcp" or path.startswith("/mcp/"):
         if not secret_ok(request.headers.get(SECRET_HEADER)):
             return JSONResponse(status_code=401, content={"detail": f"missing or wrong {SECRET_HEADER} header"})
+        token = tracing.REMOTE_TRACEPARENT.set(request.headers.get("traceparent"))
+        try:
+            return await call_next(request)
+        finally:
+            tracing.REMOTE_TRACEPARENT.reset(token)
     elif path.startswith("/api/") and not config.model_configured():
         return JSONResponse(status_code=503, content={"detail": NO_KEY_MESSAGE})
     return await call_next(request)

@@ -106,3 +106,36 @@ def read_trace(trace_id: str, limit: int = 500) -> List[Dict]:
         return []
     with open(path, encoding="utf-8") as f:
         return [json.loads(line) for line in f if line.strip()][:limit]
+
+
+# ─── Spans for work done on behalf of a remote caller (MCP tool calls, the CrewAI service) ───
+
+REMOTE_TRACEPARENT: contextvars.ContextVar[Optional[str]] = contextvars.ContextVar("remote_traceparent", default=None)
+
+
+@contextmanager
+def remote_span(name: str, attributes: Optional[Dict] = None) -> Iterator[None]:
+    """A span whose parent is the caller's W3C traceparent (set by the /mcp middleware), if there is one."""
+    value = REMOTE_TRACEPARENT.get()
+    if not value:
+        yield
+        return
+    setup_tracing()
+    parent = propagate.extract({"traceparent": value})
+    with trace.get_tracer("claimsleuth").start_as_current_span(name, context=parent, attributes=attributes or {}):
+        yield
+
+
+def append_span_records(records: List[Dict]) -> int:
+    """Store span records produced by another service (same fields as JsonlSpanExporter) in their trace files."""
+    written = 0
+    for record in records:
+        trace_id = str(record.get("trace_id") or "")
+        if len(trace_id) != 32 or not all(c in "0123456789abcdef" for c in trace_id):
+            continue
+        folder = traces_dir()
+        folder.mkdir(parents=True, exist_ok=True)
+        with _LOCK, open(folder / f"{trace_id}.jsonl", "a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
+        written += 1
+    return written

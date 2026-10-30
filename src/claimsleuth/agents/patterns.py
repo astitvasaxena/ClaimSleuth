@@ -5,6 +5,7 @@ one agent have two parents) and returns the root agent plus the MCP toolsets to 
 from google.adk.agents import ParallelAgent, SequentialAgent
 
 from claimsleuth.agents import evidence, fraud_remote, manager, policy, settlement
+from claimsleuth.callbacks.hooks import attach_callbacks
 
 PATTERNS = ("sequential", "parallel", "hierarchical")
 
@@ -38,4 +39,5 @@ def build(pattern: str, style: str):
     builders = {"sequential": build_sequential, "parallel": build_parallel, "hierarchical": build_hierarchical}
     if pattern not in builders:
         raise ValueError(f"unknown pattern {pattern!r}; use one of {PATTERNS}")
-    return builders[pattern](style)
+    root, toolsets = builders[pattern](style)
+    return attach_callbacks(root), toolsets

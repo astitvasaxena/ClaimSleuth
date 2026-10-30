@@ -5,6 +5,7 @@ The tools read documents and do the exact work (dates, money, database lookups).
 anything: the agents call them and interpret the results. Invalid input or a missing record raises
 ToolError, which MCP returns to the caller as an error result, never as made-up data.
 """
+import functools
 from datetime import date
 from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
@@ -16,7 +17,7 @@ from mcp.server.mcpserver.exceptions import ToolError
 from mcp.server.transport_security import TransportSecuritySettings
 from pydantic import BaseModel
 
-from claimsleuth import config, db
+from claimsleuth import config, db, tracing
 from claimsleuth.mcp_server.pdf import NoTextLayer, read_lines
 from claimsleuth.rag.retriever import retrieve
 
@@ -116,9 +117,19 @@ def _section_lines(lines: list[str], section: str) -> list[Line]:
     return numbered(lines, start, end)
 
 
+def traced(fn):
+    """Run the tool inside an 'mcp.<tool>' span whose parent is the caller's traceparent header."""
+    @functools.wraps(fn)
+    def wrapper(*args, **kwargs):
+        with tracing.remote_span(f"mcp.{fn.__name__}", {"mcp.tool": fn.__name__}):
+            return fn(*args, **kwargs)
+    return wrapper
+
+
 # ─── Tools ─────────────────────────────────────────────────────────────────────────────────
 
 @server.tool()
+@traced
 def parse_document(doc_id: str) -> ParsedDocument:
     """Read one claim document (PDF, TXT or MD) and return its non-empty lines with line numbers.
 
@@ -129,6 +140,7 @@ def parse_document(doc_id: str) -> ParsedDocument:
 
 
 @server.tool()
+@traced
 def search_policy(claim_id: str, query: str, k: int = 4) -> PolicySearchResult:
     """Search the wording of this claim's warranty policy (and any policy file uploaded with the claim).
 
@@ -162,6 +174,7 @@ def search_policy(claim_id: str, query: str, k: int = 4) -> PolicySearchResult:
 
 
 @server.tool()
+@traced
 def check_coverage(purchase_date: date, incident_date: date, warranty_months: int,
                    exclusions: list[str], cause: str) -> CoverageCheck:
     """Date maths for the warranty window, and exact phrase matching of the cause against the exclusions.
@@ -182,6 +195,7 @@ def check_coverage(purchase_date: date, incident_date: date, warranty_months: in
 
 
 @server.tool()
+@traced
 def compute_payout(repair_cost: Decimal, deductible: Decimal, coverage_limit: Decimal,
                    depreciation_pct: Decimal = Decimal("0")) -> PayoutResult:
     """The only source of money figures. payout = min(repair_cost - deductible, coverage_limit) x (1 - depreciation_pct/100), rounded to cents."""
@@ -200,6 +214,7 @@ def compute_payout(repair_cost: Decimal, deductible: Decimal, coverage_limit: De
 
 
 @server.tool()
+@traced
 def claim_history(serial: str, claimant: str, claim_id: Optional[str] = None) -> HistoryResult:
     """Earlier claims for this serial number or this claimant: the claim-history records and earlier claims
     in ClaimSleuth, excluding `claim_id` (the claim under investigation). last_claim_days_ago is measured
