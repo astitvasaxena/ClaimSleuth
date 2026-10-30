@@ -41,3 +41,16 @@ No model key: every `/api/*` route answers `503` with "No model key configured; 
 - `python -m claimsleuth.api.app` started with no import errors; `/healthz` answered `{"status":"ok", ...}`.
 - `pytest`: 21 passed (RAG retrieval, audit chain, tracing, guardrail patterns, API start-up).
 - `grep -rn "investigator\|crewai_adapter\|tool_registry" src` returned nothing.
+
+## Step 2: data models and SQLite schema
+
+`src/claimsleuth/models.py` holds every shared shape (`Quote`, `Fact`, `Facts`, `Coverage`, `Payout`, `FraudFinding`, `Fraud`, `GuardrailHit`, `FinalReport`) plus `ManagerSubmission`, `ClaimRecord`, `DocumentRecord`, `review_level()` and `to_markdown()`.
+
+Differences from the plan:
+
+- **`FinalReport` is written fresh, not extended.** The old `FinalReport` lived in `src/adk_app/report.py` and described the deleted deterministic pipeline (status codes, verifier gates). Its fields do not fit the new agents, so the plan's field list is used as is.
+- **`ManagerSubmission`:** the Manager's `submit_report` takes only `decision`, `reasons`, `evidence` and an optional `payout_amount`. Code builds the `FinalReport` from the blackboard (payout, coverage, fraud, guardrail hits) and sets `review`, `pattern` and `prompt_style`, so the model cannot set them. A `payout_amount` that differs from `bb_payout` is overwritten and recorded as `bad_output` (step 6).
+
+`src/claimsleuth/db.py`: plain `sqlite3`, WAL mode, the seven tables from the plan, created on start-up. The three demo scenarios are loaded into `claims` (`source='demo'`) and `documents`; `past_claims` is seeded from `data/past_claims.json`. That file includes a prior claim on serial `REF-HC-99400-B` by a different claimant, which is the serial on Scenario 3's diagnostic report, so the History analyst has a real record to find.
+
+**Check (2026-10-30):** `pytest tests/test_models.py`: 9 passed (round-trip of every model, exact money, invalid values rejected, the review rule, database init and idempotence). `python -m claimsleuth.db --init` created the tables and loaded 3 claims, 6 documents and 4 past claims.
