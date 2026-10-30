@@ -4,9 +4,9 @@ The ADK callbacks, attached to every agent by attach_callbacks() inside each pat
 | callback      | guardrail work                                                  | monitoring work     |
 | before_agent  | -                                                               | start timer         |
 | after_agent   | Evidence/Policy: drop or flag quotes not found in the document  | stop timer          |
-| before_model  | screen model input for injection and abuse; redact abuse; wrap  | count model calls   |
+| before_model  | screen model input for injection and abuse; redact abuse; wrap  | -                   |
 |               | the customer statement in <customer_statement> tags             |                     |
-| after_model   | -                                                               | add tokens          |
+| after_model   | -                                                               | count calls, tokens |
 | before_tool   | refuse tools not on the agent's list, or for another claim      | count tool calls    |
 | after_tool    | check MCP results against the tool's return model               | count errors        |
 | on_tool_error | turn a tool exception into an error the model sees              | count errors        |
@@ -135,7 +135,6 @@ async def before_model(callback_context, llm_request) -> None:
     state, agent = callback_context.state, callback_context.agent_name
     rec = _recorder(callback_context)
     if rec:
-        rec.rows[agent].llm_calls += 1
         await rec.emit(agent, "model_call")
     claim = read(state, BB_CLAIM) or {}
     statement = claim.get("statement", "")
@@ -162,6 +161,8 @@ async def before_model(callback_context, llm_request) -> None:
 async def after_model(callback_context, llm_response) -> None:
     rec = _recorder(callback_context)
     usage = llm_response.usage_metadata
+    if rec and not llm_response.partial:
+        rec.rows[callback_context.agent_name].llm_calls += 1          # counted when a response arrives
     if rec and usage:
         row = rec.rows[callback_context.agent_name]
         row.prompt_tokens += usage.prompt_token_count or 0

@@ -107,3 +107,22 @@ Earlier live runs: Scenario 1, sequential, `gemini-3.5-flash-lite`: approve, $25
 Tracing: MCP tool calls run in an `mcp.<tool>` span whose parent is the caller's `traceparent` header (set by the `/mcp` middleware). The crew service has OpenTelemetry's SDK disabled, so it returns span records for the crew and its two tasks in the A2A reply, and the ADK callback writes them into the same trace file. The crew's MCP calls carry the crew span as their parent.
 
 **Check so far:** `tests/test_guardrails.py` (injection and abuse patterns, statement and document attribution, quote check drops an invented quote, a malformed tool result becomes `bad_tool_result`, tool allowlists, other-claim refusals, payout replacement, approval without a payout refused). The injector-persona live check is part of step 8.
+
+## Step 7: API, uploads, storage, login and dashboard
+
+`src/claimsleuth/api/app.py`: every `/api/*` route needs `Authorization: Bearer $ADJUSTER_TOKEN` (`401` otherwise; `503` if no token is configured, so the API never runs open). `/healthz`, `/mcp` (its own secret) and the page shell are the exceptions; the page holds no data until the token is accepted. Routes: `GET/POST /api/claims`, `GET /api/claims/{id}`, `GET /api/documents/{doc_id}`, `POST /api/claims/{id}/investigate`, `GET /api/runs/{run_id}/events` (server-sent events), `GET /api/claims/{id}/report`, `GET /api/runs/{run_id}/heatmap.png`, `GET /api/runs/{run_id}/trace`, `POST /api/claims/{id}/review`, `GET /api/audit/{id}/verify`, `GET /api/evaluation`. Uploads: up to 10 files of 5 MB, PDF/TXT/MD checked by content (`%PDF-` header; UTF-8 text without NUL bytes) as well as extension, saved under `DATA_DIR/uploads/<claim_id>/`; an uploaded policy document is searched for that claim only. `src/claimsleuth/api/jobs.py` runs investigations in the background, at most 2 at a time and one per claim (`409`). The dashboard (`src/claimsleuth/web/index.html`, same palette and fonts as before) has the login, Claims (demos and uploads), New claim, Claim (live timeline from the event stream read with `fetch`, report, quotes that open the document at their line, fraud findings, guardrail hits, heat map, trace, review) and Evaluation pages.
+
+Differences from the plan:
+
+- **`runs.trace_id` column added**, so a run's trace can be fetched (`/api/runs/{id}/trace`); older databases get it through `ALTER TABLE` on start-up.
+- **The demo and upload pages are one "Claims" page.** The pattern and prompt-style pickers are on the claim page, so the same controls work for demos and uploads.
+- **Model calls are counted when a response arrives** (`after_model`), not when a call is attempted, so the metric equals the calls made (the call-cap test showed 31 counted for 30 made).
+- **The Manager's seconds include its specialists' time** in the hierarchical pattern, because it waits for each of them.
+
+Bug found by the tests: the `investigate` route was synchronous, so `asyncio.create_task` failed in FastAPI's worker thread and the error was reported as `409`. It is now async, and "already running" has its own exception.
+
+**Check (2026-10-30, `gemini-3.5-flash-lite`):**
+
+- Through the API: an uploaded claim with two text PDFs (`UPL-20261030-BC7E6C`, a Samsung Galaxy S24 with a $310.00 repair under POL-TECH-CARE-01) ran in the background in 69 s (run `cfdad4e7b00d`): approve, $281.00 from `compute_payout`, `full_review`. A second run on the same claim during the first got `409`. A review without a note got `422`; with a note, `200`. After stopping and restarting the app, the report, the review and its note were still there, and the audit chain verified (5 entries).
+- In the dashboard, driven in headless Microsoft Edge with Playwright: a wrong token was refused; the same two PDFs uploaded through the New claim form (`UPL-20261030-7730B1`) and investigated with the Investigate button (run `fd1de031e1da`, 92 s, 55 timeline lines): approve, full review; approve without a note was refused, then accepted with one; a quote opened its document at line 4; the trace showed 121 spans. At 390 px wide the page first overflowed sideways; after a CSS fix the Claims, New claim and Claim pages measured exactly 390 px.
+- `tests/test_api.py` (token, upload limits and file-type checks, restart persistence, review rules, `409`) and `tests/test_runner.py` (with ADK's real `Runner` and a fake model, the run stops at the 30-call cap with status `failed`, no report, 30 calls recorded). `pytest`: 78 passed.
