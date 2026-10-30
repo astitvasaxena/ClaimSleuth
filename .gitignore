@@ -42,3 +42,12 @@ powershell.bat
 
 # Editable-install metadata
 *.egg-info/
+
+# App data wherever DATA_DIR points: SQLite database, uploaded claim files, logs, traces
+*.db
+*.db-wal
+*.db-shm
+uploads/
+logs/
+*.log
+traces/
