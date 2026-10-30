@@ -54,3 +54,20 @@ Differences from the plan:
 `src/claimsleuth/db.py`: plain `sqlite3`, WAL mode, the seven tables from the plan, created on start-up. The three demo scenarios are loaded into `claims` (`source='demo'`) and `documents`; `past_claims` is seeded from `data/past_claims.json`. That file includes a prior claim on serial `REF-HC-99400-B` by a different claimant, which is the serial on Scenario 3's diagnostic report, so the History analyst has a real record to find.
 
 **Check (2026-10-30):** `pytest tests/test_models.py`: 9 passed (round-trip of every model, exact money, invalid values rejected, the review rule, database init and idempotence). `python -m claimsleuth.db --init` created the tables and loaded 3 claims, 6 documents and 4 past claims.
+
+## Step 3: MCP server with five tools
+
+`src/claimsleuth/mcp_server/server.py`: `parse_document`, `search_policy`, `check_coverage`, `compute_payout`, `claim_history`, each with typed arguments and a Pydantic return model. It is served over streamable HTTP at `/mcp` inside the FastAPI app, and every request needs `X-ClaimSleuth-Secret`. Without the header, with a wrong value, or when no secret is configured, the answer is `401`. `src/claimsleuth/mcp_server/pdf.py` reads PDFs with pypdf 6.21.4.
+
+Differences from the plan:
+
+- **`MCPServer`, not `FastMCP`:** in MCP SDK 2.3.0 the high-level server class is `mcp.server.mcpserver.MCPServer` (FastMCP's successor, same decorator API).
+- **Errors:** tools raise `ToolError`, which MCP returns as an error result (`isError: true`) with the message. That is the protocol's own error channel, so a caller can never mistake an error for data, and the tool's output schema stays exact.
+- **`search_policy` result shape:** `{passages: [{doc_id, section, score, lines: [{n, text}]}], warnings}` instead of `{section, text, line, score}`. Returning numbered lines lets the Policy agent quote the exact line of a clause. Policy wording has `doc_id` `policy:<POLICY-ID>`; an uploaded policy keeps its document id.
+- **`claim_history` takes an optional `claim_id`** to exclude the claim under investigation and to measure `last_claim_days_ago` from its incident date.
+- **The MCP SDK's localhost-only host check is off** (`enable_dns_rebinding_protection=False`), because it would reject the cloud host name. The shared secret is checked before any request reaches the MCP app.
+- **Stateless HTTP:** `stateless_http=True`, so no MCP session state lives in the server.
+
+Deleted: `src/mcp/remote_server.py` (replaced). `src/tools/` stays until step 5, because the old CrewAI service still imports it.
+
+**Check (2026-10-30):** `python eval/mcp_smoke.py --url http://127.0.0.1:8090/mcp` (separate client process, `mcp.client.streamable_http`, against the running app on port 8090, because port 8000 was used by another program on this machine) printed PASS: exactly five tools listed, each called successfully with demo data, a scanned PDF returned "no text layer: scanned document, OCR not supported", and a request without the secret got `401`. `pytest`: 49 passed, including `tests/test_mcp_tools.py` (normal, edge and error cases for each tool and the `401` checks).
