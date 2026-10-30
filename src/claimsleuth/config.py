@@ -38,6 +38,7 @@ CREW_URL = (os.environ.get("CREW_URL") or "http://127.0.0.1:8101").rstrip("/")
 # Limits per run.
 MAX_LLM_CALLS = 30
 RUN_TIMEOUT_S = 15 * 60
+MODEL_CALL_TIMEOUT_S = 120        # one model request; a stalled call fails instead of hanging the run
 MODEL_RETRY_ATTEMPTS = 5          # retries on 429/5xx from the model API (Gemini returned 503s during the build)
 
 # Model prices in USD per million tokens, from the provider's price list, with the date they were read.

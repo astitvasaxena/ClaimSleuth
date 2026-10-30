@@ -66,14 +66,14 @@ class TestGuardrailPatterns(unittest.TestCase):
 class TestApiStartup(unittest.TestCase):
 
     def test_api_refuses_without_model_key(self):
-        with mock.patch.object(config, "GOOGLE_API_KEY", ""):
+        with mock.patch.object(config, "GOOGLE_API_KEY", ""), mock.patch.object(config, "ADJUSTER_TOKEN", "t0k"):
             client = TestClient(api.app)
-            response = client.get("/api/status")
+            response = client.get("/api/status", headers={"Authorization": "Bearer t0k"})
             self.assertEqual(response.status_code, 503)
             self.assertEqual(response.json()["detail"], api.NO_KEY_MESSAGE)
-            self.assertIn(api.NO_KEY_MESSAGE, client.get("/").text)
-            self.assertEqual(client.get("/healthz").status_code, 200)
+            self.assertFalse(client.get("/healthz").json()["model_configured"])
 
     def test_api_runs_with_model_key(self):
-        with mock.patch.object(config, "GOOGLE_API_KEY", "test-key"):
-            self.assertEqual(TestClient(api.app).get("/api/status").status_code, 200)
+        with mock.patch.object(config, "GOOGLE_API_KEY", "test-key"), mock.patch.object(config, "ADJUSTER_TOKEN", "t0k"):
+            response = TestClient(api.app).get("/api/status", headers={"Authorization": "Bearer t0k"})
+            self.assertEqual(response.status_code, 200)

@@ -35,7 +35,11 @@ GUARDRAIL_RETRIES = 2
 def build_llm() -> LLM:
     """CrewAI's native Gemini provider (crewai[google-genai]). The OpenAI-compatible endpoint is not used: it drops
     the thought signatures that Gemini 3 models require on tool calls (HTTP 400)."""
-    return LLM(model=f"gemini/{config.GEMINI_MODEL}", api_key=config.GOOGLE_API_KEY, temperature=0)
+    from google.genai import types
+    http = types.HttpOptions(timeout=config.MODEL_CALL_TIMEOUT_S * 1000, retry_options=types.HttpRetryOptions(
+        attempts=config.MODEL_RETRY_ATTEMPTS, initial_delay=2.0, max_delay=30.0, http_status_codes=[429, 500, 502, 503, 504]))
+    return LLM(model=f"gemini/{config.GEMINI_MODEL}", api_key=config.GOOGLE_API_KEY, temperature=0,
+               client_params={"http_options": http})
 
 
 def mcp(*tools: str, traceparent: str = "") -> MCPServerHTTP:

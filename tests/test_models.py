@@ -83,8 +83,11 @@ class TestDatabase(unittest.TestCase):
 
     def test_init_creates_tables_and_loads_demos_and_seed(self):
         result = db.init()
-        self.assertEqual(result["counts"]["claims"], 3)
-        self.assertEqual(result["counts"]["documents"], 6)
+        with db.connect() as conn:
+            demos = conn.execute("SELECT COUNT(*) FROM claims WHERE source = 'demo'").fetchone()[0]
+            demo_docs = conn.execute("SELECT COUNT(*) FROM documents d JOIN claims c ON c.id = d.claim_id"
+                                     " WHERE c.source = 'demo'").fetchone()[0]
+        self.assertEqual((demos, demo_docs), (3, 6))
         self.assertGreaterEqual(result["counts"]["past_claims"], 1)
         again = db.init()                                   # idempotent
         self.assertEqual(again["demos_added"], 0)

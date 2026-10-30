@@ -73,7 +73,7 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
     runner = Runner(app_name=APP_NAME, agent=root, session_service=sessions)
     await sessions.create_session(app_name=APP_NAME, user_id="adjuster", session_id=run_id,
                                   state=initial_state(claim, documents, run))
-    status, error, report = "failed", None, None
+    status, error, report, blackboard = "failed", None, None, {}
     recorder = metrics.start_run(run_id, on_event)
     tracing.setup_tracing()
     try:
@@ -88,6 +88,7 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
                     if summary["type"] in ("text", "error") and summary["text"]:
                         await recorder.emit(summary["agent"], summary["type"], summary["text"])
         state = (await sessions.get_session(app_name=APP_NAME, user_id="adjuster", session_id=run_id)).state
+        blackboard = {key: read(state, key) for key in state if key.startswith("bb_")}
         if state.get(BB_REPORT):
             report = FinalReport.model_validate(read(state, BB_REPORT))
             status = "completed"
@@ -105,8 +106,9 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
     totals = recorder.totals()
     with db.connect() as conn:
         conn.execute("UPDATE runs SET seconds = ?, status = ?, error = ?, prompt_tokens = ?, completion_tokens = ?,"
-                     " cost_usd = ? WHERE id = ?", (seconds, status, error, totals["prompt_tokens"],
-                                                    totals["completion_tokens"], totals["cost_usd"], run_id))
+                     " cost_usd = ?, trace_id = ? WHERE id = ?", (seconds, status, error, totals["prompt_tokens"],
+                                                                  totals["completion_tokens"], totals["cost_usd"],
+                                                                  run.get("trace_id"), run_id))
         conn.executemany("INSERT INTO agent_metrics (run_id, agent, seconds, prompt_tokens, completion_tokens,"
                          " llm_calls, tool_calls, errors, guardrail_hits) VALUES (:run_id, :agent, :seconds,"
                          " :prompt_tokens, :completion_tokens, :llm_calls, :tool_calls, :errors, :guardrail_hits)",
@@ -118,7 +120,7 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
             conn.execute("UPDATE claims SET status = ? WHERE id = ?", (f"decided:{report.decision}", claim_id))
     ledger.log_step(1, "RUN_FINISHED", f"{status} in {seconds} s", reasoning=error or (report.decision if report else None))
     return {"run_id": run_id, "status": status, "error": error, "seconds": seconds, "trace_id": run.get("trace_id"),
-            "metrics": recorder.as_rows(), **totals,
+            "metrics": recorder.as_rows(), **totals, "blackboard": blackboard,
             "report": report.model_dump(mode="json") if report else None}
 
 

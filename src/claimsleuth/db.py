@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS runs (
     id TEXT PRIMARY KEY, claim_id TEXT NOT NULL REFERENCES claims(id), pattern TEXT NOT NULL,
     prompt_style TEXT NOT NULL, model TEXT NOT NULL, started_at TEXT NOT NULL, seconds REAL,
     prompt_tokens INTEGER DEFAULT 0, completion_tokens INTEGER DEFAULT 0, cost_usd REAL DEFAULT 0,
-    status TEXT NOT NULL, error TEXT);
+    status TEXT NOT NULL, error TEXT, trace_id TEXT);
 CREATE TABLE IF NOT EXISTS agent_metrics (
     run_id TEXT NOT NULL REFERENCES runs(id), agent TEXT NOT NULL, seconds REAL DEFAULT 0,
     prompt_tokens INTEGER DEFAULT 0, completion_tokens INTEGER DEFAULT 0, llm_calls INTEGER DEFAULT 0,
@@ -131,6 +131,8 @@ def init() -> dict:
     """Create the tables and load the demo claims and the claim-history seed. Safe to run repeatedly."""
     with connect() as conn:
         conn.executescript(SCHEMA)
+        if "trace_id" not in {r["name"] for r in conn.execute("PRAGMA table_info(runs)")}:
+            conn.execute("ALTER TABLE runs ADD COLUMN trace_id TEXT")          # databases created before the column
         demos = seed_folder_claims(conn, config.DEMO_CLAIMS_DIR, "demo")
         seeded = 0
         if not conn.execute("SELECT 1 FROM past_claims LIMIT 1").fetchone():

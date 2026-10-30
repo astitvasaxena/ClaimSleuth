@@ -1,2845 +1,371 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ClaimSleuth — Forensic AI Warranty Command Center</title>
-    <meta name="description" content="Agentic AI Warranty Investigation Command Center featuring deterministic dual-gate verification, multi-agent orchestration, and real-time evidence synthesis.">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg-deep: #07090C;
-            --bg-base: #0B0E12;
-            --bg-surface: #10151C;
-            --bg-surface-elevated: #151C26;
-            --bg-surface-glass: rgba(16, 21, 28, 0.78);
-            --border-subtle: rgba(255, 255, 255, 0.08);
-            --border-focus: rgba(103, 221, 245, 0.4);
-            --text-primary: #F2F5F7;
-            --text-secondary: #8996A3;
-            --text-tertiary: #526071;
-            --accent-cyan: #67DDF5;
-            --accent-cyan-dim: rgba(103, 221, 245, 0.12);
-            --accent-cyan-glow: rgba(103, 221, 245, 0.28);
-            --status-amber: #E9BD73;
-            --status-amber-dim: rgba(233, 189, 115, 0.14);
-            --status-green: #34D399;
-            --status-green-dim: rgba(52, 211, 153, 0.14);
-            --status-red: #F87171;
-            --status-red-dim: rgba(248, 113, 113, 0.14);
-            --status-indigo: #818CF8;
-            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-            --font-mono: 'JetBrains Mono', monospace;
-            --radius-sm: 6px;
-            --radius-md: 10px;
-            --radius-lg: 16px;
-            --radius-xl: 22px;
-        }
-
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-
-        html, body {
-            background-color: var(--bg-base);
-            color: var(--text-primary);
-            font-family: var(--font-sans);
-            line-height: 1.5;
-            min-height: 100vh;
-            overflow-x: hidden;
-            -webkit-font-smoothing: antialiased;
-        }
-
-        /* Ambient Dimensional Atmosphere */
-        body::before {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: 
-                radial-gradient(ellipse 90% 60% at 50% -20%, rgba(103, 221, 245, 0.07) 0%, transparent 60%),
-                radial-gradient(ellipse 70% 50% at 85% 100%, rgba(129, 140, 248, 0.05) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 40% at 10% 80%, rgba(233, 189, 115, 0.03) 0%, transparent 60%);
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* Subtle Forensic Gridlines */
-        body::after {
-            content: '';
-            position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-image: 
-                linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-            background-size: 60px 60px;
-            pointer-events: none;
-            z-index: 0;
-        }
-
-        /* ==========================================================================
-           CINEMATIC OPENING INTRO CURTAIN
-           ========================================================================== */
-        #cinematicIntro {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background-color: var(--bg-deep);
-            z-index: 9999;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            pointer-events: none;
-            transition: opacity 0.65s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.65s;
-        }
-
-        #cinematicIntro.dissolve {
-            opacity: 0;
-            visibility: hidden;
-        }
-
-        .intro-emblem {
-            position: relative;
-            width: 80px;
-            height: 80px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            margin-bottom: 1.5rem;
-        }
-
-        .intro-ring {
-            position: absolute;
-            inset: 0;
-            border-radius: 50%;
-            border: 1px solid var(--accent-cyan);
-            opacity: 0.35;
-            animation: introRingSpin 2.5s cubic-bezier(0.4, 0, 0.2, 1) infinite;
-        }
-
-        .intro-ring:nth-child(2) {
-            inset: -12px;
-            border-style: dashed;
-            opacity: 0.2;
-            animation: introRingSpin 4s linear infinite reverse;
-        }
-
-        .intro-core-dot {
-            width: 28px;
-            height: 28px;
-            background: radial-gradient(circle, var(--accent-cyan) 0%, rgba(103, 221, 245, 0.2) 70%, transparent 100%);
-            border-radius: 50%;
-            box-shadow: 0 0 24px var(--accent-cyan-glow);
-        }
-
-        .intro-title {
-            font-size: 1.15rem;
-            font-weight: 700;
-            letter-spacing: 0.35em;
-            text-transform: uppercase;
-            color: var(--text-primary);
-            margin-bottom: 0.4rem;
-        }
-
-        .intro-sub {
-            font-size: 0.7rem;
-            letter-spacing: 0.2em;
-            text-transform: uppercase;
-            color: var(--text-secondary);
-            font-family: var(--font-mono);
-        }
-
-        @keyframes introRingSpin {
-            0% { transform: rotate(0deg) scale(0.95); }
-            50% { transform: rotate(180deg) scale(1.05); }
-            100% { transform: rotate(360deg) scale(0.95); }
-        }
-
-        /* Reduced Motion */
-        @media (prefers-reduced-motion: reduce) {
-            #cinematicIntro { display: none !important; }
-            * { animation-duration: 0.001ms !important; transition-duration: 0.001ms !important; }
-        }
-
-        /* ==========================================================================
-           TOP NAVIGATION BAR
-           ========================================================================== */
-        header {
-            position: sticky;
-            top: 0;
-            z-index: 100;
-            background: rgba(11, 14, 18, 0.88);
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            border-bottom: 1px solid var(--border-subtle);
-            padding: 0.85rem 2rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-
-        .nav-brand-group {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-        }
-
-        .brand-monogram {
-            width: 38px;
-            height: 38px;
-            border-radius: var(--radius-md);
-            background: linear-gradient(135deg, rgba(103, 221, 245, 0.15), rgba(129, 140, 248, 0.1));
-            border: 1px solid var(--border-focus);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: var(--accent-cyan);
-            box-shadow: 0 0 16px rgba(103, 221, 245, 0.15);
-        }
-
-        .brand-text-stack {
-            display: flex;
-            flex-direction: column;
-        }
-
-        .brand-heading {
-            font-size: 1.1rem;
-            font-weight: 800;
-            letter-spacing: -0.01em;
-            color: var(--text-primary);
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .brand-version {
-            font-size: 0.65rem;
-            font-family: var(--font-mono);
-            font-weight: 600;
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-            background: var(--accent-cyan-dim);
-            color: var(--accent-cyan);
-            border: 1px solid rgba(103, 221, 245, 0.25);
-            letter-spacing: 0.04em;
-        }
-
-        .brand-subheading {
-            font-size: 0.68rem;
-            color: var(--text-secondary);
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-        }
-
-        .nav-controls {
-            display: flex;
-            align-items: center;
-            gap: 1.25rem;
-        }
-
-        .system-telemetry-badge {
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-            font-size: 0.72rem;
-            font-family: var(--font-mono);
-            color: var(--text-secondary);
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-subtle);
-            padding: 0.35rem 0.8rem;
-            border-radius: var(--radius-sm);
-        }
-
-        .pulse-indicator {
-            width: 7px;
-            height: 7px;
-            border-radius: 50%;
-            background-color: var(--status-green);
-            box-shadow: 0 0 8px var(--status-green);
-            animation: telemetryPulse 2s ease-in-out infinite;
-        }
-
-        @keyframes telemetryPulse {
-            0%, 100% { opacity: 1; transform: scale(1); }
-            50% { opacity: 0.4; transform: scale(0.85); }
-        }
-
-        .btn-tech-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.45rem;
-            font-size: 0.75rem;
-            font-weight: 600;
-            font-family: var(--font-sans);
-            color: var(--text-secondary);
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-subtle);
-            padding: 0.45rem 0.85rem;
-            border-radius: var(--radius-sm);
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-
-        .btn-tech-toggle:hover {
-            color: var(--text-primary);
-            border-color: var(--border-focus);
-            background: rgba(103, 221, 245, 0.06);
-        }
-
-        /* Status Pills */
-        .status-pill {
-            display: inline-flex;
-            align-items: center;
-            font-weight: 700;
-            font-size: 0.72rem;
-            font-family: var(--font-mono);
-            padding: 0.25rem 0.75rem;
-            border-radius: 9999px;
-            letter-spacing: 0.04em;
-            text-transform: uppercase;
-        }
-
-        .status-INITIALIZED {
-            background: rgba(255, 255, 255, 0.06);
-            color: var(--text-secondary);
-            border: 1px solid var(--border-subtle);
-        }
-
-        .status-VERIFIED_PENDING_APPROVAL {
-            background: var(--status-green-dim);
-            color: var(--status-green);
-            border: 1px solid rgba(52, 211, 153, 0.35);
-            box-shadow: 0 0 12px rgba(52, 211, 153, 0.15);
-        }
-
-        .status-REJECTED_DETERMINISTICALLY {
-            background: var(--status-red-dim);
-            color: var(--status-red);
-            border: 1px solid rgba(248, 113, 113, 0.35);
-        }
-
-        .status-CONFLICT_ESCALATED {
-            background: var(--status-amber-dim);
-            color: var(--status-amber);
-            border: 1px solid rgba(233, 189, 115, 0.35);
-        }
-
-        .status-CLOSED_SETTLED {
-            background: var(--status-green);
-            color: #052416;
-            font-weight: 800;
-            box-shadow: 0 0 16px rgba(52, 211, 153, 0.4);
-        }
-
-        .status-CLOSED_REJECTED {
-            background: var(--status-red);
-            color: #2b0404;
-            font-weight: 800;
-        }
-
-        .status-NEEDS_EVIDENCE {
-            background: var(--status-amber);
-            color: #2b1a04;
-            font-weight: 800;
-        }
-
-        /* ==========================================================================
-           MAIN CONTAINER & LAYOUT STRUCTURE
-           ========================================================================== */
-        .app-shell {
-            position: relative;
-            z-index: 1;
-            max-width: 1520px;
-            margin: 0 auto;
-            padding: 1.5rem 2rem 4rem;
-        }
-
-        /* ==========================================================================
-           SCENARIO SELECTOR RIBBON
-           ========================================================================== */
-        .scenario-ribbon {
-            margin-bottom: 1.75rem;
-        }
-
-        .ribbon-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-        }
-
-        .ribbon-label {
-            font-size: 0.7rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--text-tertiary);
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .scenarios-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            gap: 1rem;
-        }
-
-        .scenario-card {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 1rem 1.15rem;
-            cursor: pointer;
-            position: relative;
-            transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-            overflow: hidden;
-        }
-
-        .scenario-card::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 3px;
-            height: 100%;
-            background: transparent;
-            transition: background 0.2s ease;
-        }
-
-        .scenario-card:hover {
-            background: var(--bg-surface-elevated);
-            border-color: rgba(255, 255, 255, 0.14);
-            transform: translateY(-2px);
-        }
-
-        .scenario-card.active {
-            background: var(--bg-surface-elevated);
-            border-color: var(--border-focus);
-            box-shadow: 0 4px 20px rgba(103, 221, 245, 0.08);
-        }
-
-        .scenario-card.active::before {
-            background: var(--accent-cyan);
-            box-shadow: 0 0 10px var(--accent-cyan);
-        }
-
-        .sc-badge {
-            display: inline-block;
-            font-size: 0.65rem;
-            font-weight: 700;
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-            margin-bottom: 0.5rem;
-            text-transform: uppercase;
-            letter-spacing: 0.03em;
-        }
-
-        .sc-badge.emerald { background: var(--status-green-dim); color: var(--status-green); border: 1px solid rgba(52, 211, 153, 0.25); }
-        .sc-badge.rose { background: var(--status-red-dim); color: var(--status-red); border: 1px solid rgba(248, 113, 113, 0.25); }
-        .sc-badge.amber { background: var(--status-amber-dim); color: var(--status-amber); border: 1px solid rgba(233, 189, 115, 0.25); }
-
-        .sc-title {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.35rem;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-        }
-
-        .sc-desc {
-            font-size: 0.72rem;
-            color: var(--text-secondary);
-            line-height: 1.4;
-            margin-bottom: 0.5rem;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-        }
-
-        .sc-expect {
-            font-size: 0.68rem;
-            color: var(--text-tertiary);
-            font-family: var(--font-mono);
-            border-top: 1px solid rgba(255, 255, 255, 0.05);
-            padding-top: 0.4rem;
-        }
-
-        .sc-expect strong {
-            color: var(--text-secondary);
-        }
-
-        /* ==========================================================================
-           PRIMARY WORKSPACE: EDITORIAL CASE BANNER + 3D EVIDENCE CORE
-           ========================================================================== */
-        .workspace-hero {
-            display: grid;
-            grid-template-columns: 1.15fr 1fr;
-            gap: 1.5rem;
-            margin-bottom: 1.75rem;
-            align-items: stretch;
-        }
-
-        /* Left Hero: Case Metadata & Command Trigger */
-        .case-dossier-card {
-            background: var(--bg-surface-glass);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 2rem;
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .case-dossier-card::after {
-            content: '';
-            position: absolute;
-            top: 0;
-            right: 0;
-            width: 250px;
-            height: 250px;
-            background: radial-gradient(circle at top right, rgba(103, 221, 245, 0.06), transparent 70%);
-            pointer-events: none;
-        }
-
-        .case-eyebrow {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            color: var(--accent-cyan);
-            margin-bottom: 0.5rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .case-headline {
-            font-size: 2.15rem;
-            font-weight: 800;
-            letter-spacing: -0.03em;
-            line-height: 1.1;
-            color: var(--text-primary);
-            margin-bottom: 0.75rem;
-        }
-
-        .case-summary-text {
-            font-size: 0.86rem;
-            color: var(--text-secondary);
-            line-height: 1.5;
-            margin-bottom: 1.5rem;
-            max-width: 580px;
-        }
-
-        /* minmax(0, 1fr) + min-width: 0 let the fields shrink and wrap inside the card; the long
-           Investigation status gets its own full-width row instead of being cut off. */
-        .meta-chips-grid {
-            display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 0.75rem;
-            margin-bottom: 1.75rem;
-            padding: 1rem;
-            background: rgba(0, 0, 0, 0.3);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-        }
-
-        .meta-chip {
-            display: flex;
-            flex-direction: column;
-            gap: 0.15rem;
-            min-width: 0;
-        }
-
-        .meta-chip-wide { grid-column: 1 / -1; }
-
-        .meta-k {
-            font-size: 0.62rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-tertiary);
-        }
-
-        .meta-v {
-            font-size: 0.8rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            font-family: var(--font-mono);
-            min-width: 0;
-            overflow-wrap: anywhere;
-        }
-
-        .hero-action-row {
-            display: flex;
-            align-items: center;
-            flex-wrap: wrap;
-            gap: 1rem;
-        }
-
-        .btn-investigate {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.65rem;
-            background: linear-gradient(135deg, #67DDF5 0%, #3B82F6 100%);
-            color: #06111C;
-            font-weight: 800;
-            font-size: 0.88rem;
-            letter-spacing: 0.02em;
-            padding: 0.9rem 2rem;
-            border-radius: var(--radius-md);
-            border: none;
-            cursor: pointer;
-            transition: all 0.25s ease;
-            box-shadow: 0 4px 20px rgba(103, 221, 245, 0.25);
-        }
-
-        .btn-investigate:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 6px 24px rgba(103, 221, 245, 0.38);
-            filter: brightness(1.06);
-        }
-
-        .btn-investigate:disabled {
-            opacity: 0.65;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-        }
-
-        .btn-investigate svg {
-            transition: transform 0.2s ease;
-        }
-
-        .btn-investigate:hover svg {
-            transform: scale(1.1);
-        }
-
-        .investigation-hint {
-            font-size: 0.72rem;
-            color: var(--text-tertiary);
-            font-family: var(--font-mono);
-        }
-
-        /* Right Hero: THE EVIDENCE CORE 3D SHOWCASE */
-        .evidence-core-chamber {
-            background: var(--bg-surface-glass);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            position: relative;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            min-height: 380px;
-        }
-
-        .core-header-hud {
-            position: absolute;
-            top: 1rem;
-            left: 1.25rem;
-            right: 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-            pointer-events: none;
-        }
-
-        .hud-label {
-            font-size: 0.65rem;
-            font-family: var(--font-mono);
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            color: var(--accent-cyan);
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        .hud-status-badge {
-            font-size: 0.62rem;
-            font-family: var(--font-mono);
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-            background: rgba(255, 255, 255, 0.04);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-        }
-
-        .evidence-canvas-wrapper {
-            position: relative;
-            width: 100%;
-            height: 100%;
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        #evidenceCoreCanvas {
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            pointer-events: none;
-        }
-
-        .core-footer-hud {
-            position: absolute;
-            bottom: 0.85rem;
-            left: 1.25rem;
-            right: 1.25rem;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            z-index: 10;
-            pointer-events: none;
-            font-size: 0.62rem;
-            font-family: var(--font-mono);
-            color: var(--text-tertiary);
-        }
-
-        .hud-telemetry-item strong {
-            color: var(--text-secondary);
-        }
-
-        /* ==========================================================================
-           RESULTS SUMMARY BANNER
-           ========================================================================== */
-        .results-banner {
-            display: none;
-            margin-bottom: 1.75rem;
-            background: var(--bg-surface-elevated);
-            border: 1px solid var(--border-focus);
-            border-radius: var(--radius-lg);
-            padding: 1.25rem 1.5rem;
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.4);
-            animation: bannerReveal 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-        }
-
-        .results-banner.visible {
-            display: block;
-        }
-
-        @keyframes bannerReveal {
-            from { opacity: 0; transform: translateY(-8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .results-banner-header {
-            font-size: 0.72rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.12em;
-            color: var(--accent-cyan);
-            margin-bottom: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .results-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-        }
-
-        .result-card {
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 0.85rem 1rem;
-        }
-
-        .result-card-label {
-            font-size: 0.65rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: var(--text-tertiary);
-            margin-bottom: 0.3rem;
-        }
-
-        .result-card-value {
-            font-size: 1.15rem;
-            font-weight: 800;
-            font-family: var(--font-mono);
-            color: var(--text-primary);
-            margin-bottom: 0.2rem;
-            letter-spacing: -0.01em;
-        }
-
-        .result-card-value.approved { color: var(--status-green); }
-        .result-card-value.rejected { color: var(--status-red); }
-        .result-card-value.escalated { color: var(--status-amber); }
-
-        .result-card-note {
-            font-size: 0.68rem;
-            color: var(--text-secondary);
-            line-height: 1.35;
-        }
-
-        /* ==========================================================================
-           TWO-COLUMN MAIN GRID (Timeline vs Dossier/Review)
-           ========================================================================== */
-        .main-grid {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 1.5rem;
-            margin-bottom: 2rem;
-        }
-
-        .main-grid > .panel { min-width: 0; }
-
-        .panel {
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            display: flex;
-            flex-direction: column;
-            gap: 1.25rem;
-        }
-
-        .panel-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            padding-bottom: 0.75rem;
-            border-bottom: 1px solid var(--border-subtle);
-        }
-
-        .panel-title {
-            display: flex;
-            align-items: center;
-            gap: 0.6rem;
-            font-size: 0.95rem;
-            font-weight: 700;
-            color: var(--text-primary);
-        }
-
-        .panel-title svg {
-            color: var(--accent-cyan);
-        }
-
-        /* Investigation Stepper Timeline */
-        .stepper-timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 0.85rem;
-            max-height: 480px;
-            overflow-y: auto;
-            padding-right: 0.25rem;
-        }
-
-        .step-item {
-            display: flex;
-            gap: 0.85rem;
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 0.85rem;
-            font-size: 0.78rem;
-            animation: stepFade 0.3s ease;
-        }
-
-        @keyframes stepFade {
-            from { opacity: 0; transform: translateX(-6px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        .step-pill {
-            font-size: 0.65rem;
-            font-weight: 800;
-            font-family: var(--font-mono);
-            padding: 0.2rem 0.55rem;
-            border-radius: 4px;
-            height: fit-content;
-            white-space: nowrap;
-            letter-spacing: 0.04em;
-        }
-
-        .phase-PLAN { background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3); }
-        .phase-EXECUTE { background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3); }
-        .phase-OBSERVE { background: rgba(233, 189, 115, 0.15); color: var(--status-amber); border: 1px solid rgba(233, 189, 115, 0.3); }
-        .phase-ASSESS { background: rgba(52, 211, 153, 0.15); color: var(--status-green); border: 1px solid rgba(52, 211, 153, 0.3); }
-
-        .step-body {
-            flex: 1;
-        }
-
-        .step-desc {
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-        }
-
-        .step-reasoning {
-            color: var(--text-secondary);
-            font-size: 0.72rem;
-            line-height: 1.4;
-            margin-bottom: 0.35rem;
-        }
-
-        .step-code {
-            background: rgba(0, 0, 0, 0.4);
-            border: 1px solid var(--border-subtle);
-            border-radius: 4px;
-            padding: 0.25rem 0.5rem;
-            font-family: var(--font-mono);
-            font-size: 0.68rem;
-            color: var(--accent-cyan);
-            width: fit-content;
-        }
-
-        /* Dual-Gate Verifier Card */
-        .verifier-box {
-            background: rgba(52, 211, 153, 0.04);
-            border: 1px solid rgba(52, 211, 153, 0.25);
-            border-radius: var(--radius-md);
-            padding: 1.15rem;
-        }
-
-        .verifier-box.rejected {
-            background: rgba(248, 113, 113, 0.04);
-            border-color: rgba(248, 113, 113, 0.25);
-        }
-
-        .verifier-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 0.75rem;
-        }
-
-        .v-badge {
-            font-size: 0.72rem;
-            font-weight: 800;
-            font-family: var(--font-mono);
-            padding: 0.25rem 0.75rem;
-            border-radius: 4px;
-            letter-spacing: 0.04em;
-        }
-
-        .v-badge.pass { background: var(--status-green-dim); color: var(--status-green); border: 1px solid rgba(52, 211, 153, 0.35); }
-        .v-badge.fail { background: var(--status-red-dim); color: var(--status-red); border: 1px solid rgba(248, 113, 113, 0.35); }
-
-        .gate-checks {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 0.75rem;
-        }
-
-        .gate-card {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 0.65rem 0.85rem;
-            border-radius: var(--radius-sm);
-            border: 1px solid var(--border-subtle);
-            font-size: 0.72rem;
-        }
-
-        .gate-label {
-            font-size: 0.62rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            color: var(--text-tertiary);
-            margin-bottom: 0.2rem;
-        }
-
-        .gate-status {
-            font-weight: 700;
-            display: flex;
-            align-items: center;
-            gap: 0.4rem;
-        }
-
-        /* Financial Math Box */
-        .math-box {
-            background: rgba(0, 0, 0, 0.35);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 1.15rem;
-        }
-
-        .math-header {
-            font-size: 0.68rem;
-            font-weight: 700;
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            color: var(--accent-cyan);
-            margin-bottom: 0.75rem;
-        }
-
-        .math-grid {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 0.6rem;
-            text-align: center;
-            margin-bottom: 0.75rem;
-        }
-
-        .math-cell {
-            background: rgba(255, 255, 255, 0.02);
-            border: 1px solid var(--border-subtle);
-            padding: 0.6rem 0.4rem;
-            border-radius: var(--radius-sm);
-        }
-
-        .math-label {
-            font-size: 0.6rem;
-            color: var(--text-tertiary);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-bottom: 0.2rem;
-        }
-
-        .math-val {
-            font-size: 1.05rem;
-            font-weight: 800;
-            font-family: var(--font-mono);
-            color: var(--text-primary);
-        }
-
-        .math-val.approved { color: var(--status-green); }
-
-        /* Documents Viewer */
-        .doc-tabs {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-bottom: 0.65rem;
-            padding-bottom: 0.25rem;
-            min-width: 0;
-        }
-
-        .doc-tab {
-            font-size: 0.7rem;
-            font-family: var(--font-mono);
-            padding: 0.35rem 0.75rem;
-            border-radius: var(--radius-sm);
-            background: rgba(255, 255, 255, 0.03);
-            border: 1px solid var(--border-subtle);
-            color: var(--text-secondary);
-            cursor: pointer;
-            max-width: 100%;
-            overflow-wrap: anywhere;
-            transition: all 0.2s ease;
-        }
-
-        .doc-tab.active {
-            background: rgba(103, 221, 245, 0.1);
-            border-color: var(--accent-cyan);
-            color: var(--accent-cyan);
-            font-weight: 700;
-        }
-
-        .doc-preview {
-            background: #06090D;
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 0.85rem;
-            font-family: var(--font-mono);
-            font-size: 0.72rem;
-            line-height: 1.45;
-            color: #C0CAD3;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            max-height: 300px;
-            overflow-y: auto;
-            overflow-x: hidden;
-        }
-
-        /* Evidence Cards */
-        .evidence-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.65rem;
-            max-height: 240px;
-            overflow-y: auto;
-        }
-
-        .evidence-card {
-            background: rgba(0, 0, 0, 0.25);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 0.75rem;
-            font-size: 0.76rem;
-            min-width: 0;
-        }
-
-        .evidence-header {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            align-items: center;
-            gap: 0.25rem 0.5rem;
-            margin-bottom: 0.25rem;
-        }
-
-        .ev-value { font-weight: 700; color: #fff; font-size: 0.82rem; overflow-wrap: anywhere; }
-
-        .dossier-empty {
-            font-size: 0.76rem;
-            color: var(--text-secondary);
-            text-align: center;
-            padding: 1.25rem;
-        }
-        .dossier-empty.error { color: var(--status-red); }
-
-        .ev-field {
-            font-weight: 700;
-            color: var(--accent-cyan);
-            font-family: var(--font-mono);
-            font-size: 0.72rem;
-        }
-
-        .ev-status {
-            font-size: 0.62rem;
-            font-weight: 700;
-            font-family: var(--font-mono);
-            padding: 0.15rem 0.45rem;
-            border-radius: 4px;
-        }
-
-        .ev-status.verified { background: var(--status-green-dim); color: var(--status-green); }
-        .ev-status.contradicted { background: var(--status-red-dim); color: var(--status-red); }
-        .ev-status.unverified { background: var(--status-amber-dim); color: var(--status-amber); }
-
-        .ev-quote {
-            background: rgba(0, 0, 0, 0.4);
-            border-left: 2px solid var(--accent-cyan);
-            padding: 0.35rem 0.6rem;
-            font-family: var(--font-mono);
-            font-size: 0.68rem;
-            color: #E2E8F0;
-            margin-top: 0.35rem;
-            border-radius: 0 4px 4px 0;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-        }
-
-        .ev-meta {
-            margin-top: 0.35rem;
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: space-between;
-            gap: 0.15rem 0.6rem;
-            font-size: 0.62rem;
-            color: var(--text-tertiary);
-            font-family: var(--font-mono);
-            overflow-wrap: anywhere;
-        }
-
-        .ev-note { margin-top: 0.3rem; font-size: 0.66rem; color: var(--status-amber); overflow-wrap: anywhere; }
-
-        /* Human In The Loop (HITL) Adjudication */
-        .hitl-box {
-            background: rgba(129, 140, 248, 0.04);
-            border: 1px solid rgba(129, 140, 248, 0.25);
-            border-radius: var(--radius-md);
-            padding: 1.15rem;
-        }
-
-        .hitl-title {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: var(--text-primary);
-            margin-bottom: 0.25rem;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .hitl-desc {
-            font-size: 0.72rem;
-            color: var(--text-secondary);
-        }
-
-        .hitl-outcome {
-            margin-top: 0.65rem;
-            display: grid;
-            gap: 0.3rem;
-            font-size: 0.74rem;
-            color: var(--text-secondary);
-            overflow-wrap: anywhere;
-        }
-        .hitl-outcome strong { color: var(--text-primary); font-family: var(--font-mono); }
-
-        /* Only the decisions the server would accept are shown; the server still checks each one. */
-        .hitl-actions {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-top: 0.85rem;
-        }
-        .hitl-actions .btn-action { flex: 1 1 8rem; }
-        .btn-action[hidden], #humanNotesInput[hidden] { display: none; }
-
-        .btn-action {
-            padding: 0.65rem 0.5rem;
-            border-radius: var(--radius-sm);
-            font-weight: 700;
-            font-size: 0.76rem;
-            border: none;
-            cursor: pointer;
-            transition: all 0.2s ease;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 0.35rem;
-        }
-
-        .btn-approve {
-            background: var(--status-green);
-            color: #042215;
-        }
-        .btn-approve:hover { filter: brightness(1.15); box-shadow: 0 2px 10px rgba(52, 211, 153, 0.3); }
-
-        .btn-reject {
-            background: var(--status-red-dim);
-            color: var(--status-red);
-            border: 1px solid rgba(248, 113, 113, 0.35);
-        }
-        .btn-reject:hover { background: rgba(248, 113, 113, 0.22); }
-
-        .btn-info {
-            background: var(--status-amber-dim);
-            color: var(--status-amber);
-            border: 1px solid rgba(233, 189, 115, 0.35);
-        }
-        .btn-info:hover { background: rgba(233, 189, 115, 0.22); }
-
-        /* ==========================================================================
-           COLLAPSIBLE TECHNICAL DETAILS CONSOLE
-           ========================================================================== */
-        .tech-details {
-            margin-top: 1rem;
-        }
-
-        .tech-toggle {
-            display: flex;
-            align-items: center;
-            gap: 0.65rem;
-            cursor: pointer;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-md);
-            padding: 0.95rem 1.4rem;
-            font-family: var(--font-sans);
-            color: var(--text-secondary);
-            font-size: 0.84rem;
-            font-weight: 700;
-            width: 100%;
-            flex-wrap: wrap;
-            text-align: left;
-            transition: all 0.2s ease;
-        }
-
-        .tech-toggle:hover {
-            border-color: var(--border-focus);
-            color: var(--text-primary);
-        }
-
-        .tech-toggle-icon {
-            display: inline-block;
-            transition: transform 0.25s ease;
-            font-size: 0.75rem;
-        }
-
-        .tech-toggle.open .tech-toggle-icon {
-            transform: rotate(90deg);
-        }
-
-        .tech-toggle-badges {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 0.5rem;
-            margin-left: auto;
-            min-width: 0;
-        }
-
-        .tech-badge {
-            font-size: 0.65rem;
-            font-weight: 600;
-            font-family: var(--font-mono);
-            padding: 0.15rem 0.5rem;
-            border-radius: 4px;
-        }
-
-        .tech-content {
-            display: none;
-            margin-top: 0.85rem;
-            background: var(--bg-surface);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-lg);
-            padding: 1.5rem;
-            animation: techSlide 0.3s ease;
-        }
-
-        .tech-content.visible { display: block; }
-
-        @keyframes techSlide {
-            from { opacity: 0; transform: translateY(-6px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-
-        .tech-metrics-bar {
-            display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 1rem;
-            margin-bottom: 1.25rem;
-            padding: 0.85rem 1.15rem;
-            background: rgba(0, 0, 0, 0.35);
-            border-radius: var(--radius-md);
-            border: 1px solid var(--border-subtle);
-        }
-
-        /* minmax(0, 1fr): a plain 1fr column cannot shrink below its longest unbreakable string,
-           which pushed long JSON past the console and the viewport. */
-        .tech-split {
-            display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-            gap: 1.25rem;
-        }
-
-        .tech-details, .tech-content, .tech-split > div { min-width: 0; max-width: 100%; }
-
-        /* One vertical scroll area per list; records wrap instead of scrolling sideways. */
-        .console-list {
-            max-height: 70vh;
-            overflow-y: auto;
-            overflow-x: hidden;
-            background: rgba(0,0,0,0.35);
-            border: 1px solid var(--border-subtle);
-            border-radius: var(--radius-sm);
-            padding: 0.6rem;
-            font-size: 0.72rem;
-            font-family: var(--font-mono);
-        }
-
-        .bb-fact, .bb-msg {
-            padding: 0.4rem 0.55rem;
-            margin-bottom: 0.35rem;
-            border-radius: 4px;
-            min-width: 0;
-        }
-        .bb-fact { background: rgba(255,255,255,0.03); border-left: 3px solid var(--accent-cyan); }
-        .bb-msg { background: rgba(129, 140, 248, 0.05); border-left: 3px solid var(--status-indigo); font-size: 0.68rem; }
-
-        .bb-fact-head, .bb-msg-head {
-            display: flex;
-            flex-wrap: wrap;
-            align-items: baseline;
-            justify-content: space-between;
-            gap: 0.25rem 0.6rem;
-            min-width: 0;
-        }
-        .bb-fact-key { color: var(--accent-cyan); font-weight: 700; overflow-wrap: anywhere; min-width: 0; }
-        .bb-fact-source {
-            flex: none;
-            font-size: 0.6rem;
-            color: var(--text-tertiary);
-            background: rgba(255,255,255,0.05);
-            padding: 0.1rem 0.35rem;
-            border-radius: 3px;
-        }
-
-        .bb-fact-value, .bb-msg-payload {
-            margin: 0.25rem 0 0;
-            max-width: 100%;
-            white-space: pre-wrap;
-            overflow-wrap: anywhere;
-            word-break: break-word;
-            color: #fff;
-            font-family: var(--font-mono);
-            font-size: 0.7rem;
-            line-height: 1.45;
-        }
-        .bb-msg-payload { color: var(--text-secondary); }
-
-        .bb-fact details > summary {
-            cursor: pointer;
-            color: var(--text-secondary);
-            font-size: 0.68rem;
-            margin-top: 0.2rem;
-            overflow-wrap: anywhere;
-        }
-        .bb-fact details > summary:hover { color: var(--text-primary); }
-
-        /* ==========================================================================
-           RESPONSIVE BREAKPOINTS
-           ========================================================================== */
-        @media (max-width: 1200px) {
-            .workspace-hero { grid-template-columns: 1fr; }
-            .scenarios-grid { grid-template-columns: 1fr; }
-            .meta-chips-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-            .main-grid { grid-template-columns: minmax(0, 1fr); }
-        }
-
-        @media (max-width: 520px) {
-            .meta-chips-grid { grid-template-columns: minmax(0, 1fr); }
-        }
-
-        @media (max-width: 768px) {
-            header { padding: 0.75rem 1rem; flex-wrap: wrap; gap: 0.75rem; }
-            .app-shell { padding: 1rem 1rem 3rem; }
-            .case-headline { font-size: 1.6rem; }
-            .results-grid { grid-template-columns: 1fr 1fr; }
-            .hitl-actions .btn-action { flex-basis: 100%; }
-            .tech-metrics-bar { grid-template-columns: 1fr 1fr; }
-            .tech-split { grid-template-columns: 1fr; }
-        }
-    </style>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ClaimSleuth</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-base: #0B0E12; --bg-surface: #10151C; --bg-elevated: #151C26;
+    --border: rgba(255,255,255,0.08); --border-focus: rgba(103,221,245,0.4);
+    --text: #F2F5F7; --text-2: #8996A3; --text-3: #526071;
+    --cyan: #67DDF5; --cyan-dim: rgba(103,221,245,0.12);
+    --amber: #E9BD73; --amber-dim: rgba(233,189,115,0.14);
+    --green: #34D399; --green-dim: rgba(52,211,153,0.14);
+    --red: #F87171; --red-dim: rgba(248,113,113,0.14);
+    --sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --mono: 'JetBrains Mono', ui-monospace, monospace;
+    --r-sm: 6px; --r-md: 10px; --r-lg: 16px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg-base); color: var(--text); font-family: var(--sans); line-height: 1.5; min-height: 100vh; }
+  a { color: var(--cyan); }
+  header { display: flex; align-items: center; gap: 24px; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--bg-surface); position: sticky; top: 0; z-index: 2; flex-wrap: wrap; }
+  header h1 { font-size: 18px; font-weight: 700; letter-spacing: -0.01em; }
+  header h1 span { color: var(--cyan); }
+  nav { display: flex; gap: 4px; flex-wrap: wrap; }
+  nav button { background: none; border: 1px solid transparent; color: var(--text-2); padding: 6px 12px; border-radius: var(--r-sm); font: 500 14px var(--sans); cursor: pointer; }
+  nav button.active, nav button:hover { color: var(--text); border-color: var(--border); background: var(--bg-elevated); }
+  .meta { margin-left: auto; color: var(--text-3); font: 12px var(--mono); }
+  main { max-width: 1180px; margin: 0 auto; padding: 24px 16px 64px; }
+  section.page { display: none; } section.page.active { display: block; }
+  h2 { font-size: 20px; margin-bottom: 6px; } h3 { font-size: 15px; margin: 18px 0 8px; color: var(--text); }
+  p.lead { color: var(--text-2); margin-bottom: 18px; max-width: 70ch; }
+  .card { background: var(--bg-surface); border: 1px solid var(--border); border-radius: var(--r-lg); padding: 18px; margin-bottom: 16px; }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); }
+  .claim-card h3 { margin-top: 0; } .claim-card p { color: var(--text-2); font-size: 14px; }
+  .row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  label { display: block; font-size: 13px; color: var(--text-2); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; background: var(--bg-base); color: var(--text); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 8px 10px; font: 14px var(--sans); }
+  input:focus, select:focus, textarea:focus { outline: none; border-color: var(--border-focus); }
+  .row select { width: auto; }
+  button.primary, button.secondary { border-radius: var(--r-sm); padding: 8px 14px; font: 600 14px var(--sans); cursor: pointer; border: 1px solid var(--border-focus); }
+  button.primary { background: var(--cyan); color: #06222A; } button.secondary { background: var(--bg-elevated); color: var(--text); border-color: var(--border); }
+  button:disabled { opacity: 0.5; cursor: not-allowed; }
+  .form-grid { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 999px; font: 600 12px var(--sans); border: 1px solid var(--border); color: var(--text-2); }
+  .badge.approve { background: var(--green-dim); color: var(--green); } .badge.reject { background: var(--red-dim); color: var(--red); }
+  .badge.request_evidence, .badge.full_review { background: var(--amber-dim); color: var(--amber); } .badge.one_click { background: var(--cyan-dim); color: var(--cyan); }
+  .timeline { font: 12.5px var(--mono); max-height: 380px; overflow: auto; background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-md); padding: 10px; }
+  .timeline div { padding: 2px 0; border-bottom: 1px dashed rgba(255,255,255,0.04); overflow-wrap: anywhere; }
+  .timeline .agent { color: var(--cyan); } .timeline .type { color: var(--amber); } .timeline .err { color: var(--red); }
+  table { width: 100%; border-collapse: collapse; font-size: 14px; } th, td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  th { color: var(--text-2); font-weight: 600; } td.num { font-family: var(--mono); text-align: right; }
+  .quote { font-family: var(--mono); font-size: 13px; } .quote a { cursor: pointer; text-decoration: none; }
+  .doc { font: 12.5px var(--mono); background: var(--bg-base); border: 1px solid var(--border); border-radius: var(--r-md); padding: 8px; max-height: 360px; overflow: auto; }
+  .doc .ln { color: var(--text-3); display: inline-block; width: 3em; text-align: right; margin-right: 10px; user-select: none; }
+  .doc .hl { background: var(--amber-dim); }
+  .notice { padding: 10px 14px; border-radius: var(--r-md); border: 1px solid var(--border); margin-bottom: 14px; }
+  .notice.error { border-color: var(--red); color: var(--red); background: var(--red-dim); }
+  .notice.ok { border-color: var(--green); color: var(--green); background: var(--green-dim); }
+  img.chart { max-width: 100%; border-radius: var(--r-md); background: #fff; }
+  .muted { color: var(--text-2); } .small { font-size: 13px; }
+  #login { max-width: 420px; margin: 12vh auto; }
+  .md table { margin: 10px 0; } .md h1, .md h2, .md h3 { margin: 16px 0 8px; } .md p, .md ul { margin: 8px 0; } .md ul { padding-left: 20px; }
+  @media (max-width: 600px) { header { padding: 12px 16px; } .meta { margin-left: 0; } }
+</style>
 </head>
 <body>
+<div id="login" class="card" hidden>
+  <h2>ClaimSleuth</h2>
+  <p class="lead">Sign in with the adjuster token.</p>
+  <div id="login-error"></div>
+  <label for="token">Adjuster token</label>
+  <input id="token" type="password" autocomplete="current-password">
+  <div class="row" style="margin-top:12px"><button class="primary" id="login-btn">Sign in</button></div>
+</div>
 
-    <!-- Cinematic Opening Curtain -->
-    <div id="cinematicIntro">
-        <div class="intro-emblem">
-            <div class="intro-ring"></div>
-            <div class="intro-ring"></div>
-            <div class="intro-core-dot"></div>
-        </div>
-        <div class="intro-title">ClaimSleuth</div>
-        <div class="intro-sub">Forensic Evidence Core Online</div>
+<div id="app" hidden>
+<header>
+  <h1>Claim<span>Sleuth</span></h1>
+  <nav>
+    <button data-page="demo" class="active">Claims</button>
+    <button data-page="new">New claim</button>
+    <button data-page="claim" id="nav-claim" hidden>Claim</button>
+    <button data-page="evaluation">Evaluation</button>
+  </nav>
+  <span class="meta" id="meta"></span>
+</header>
+<main>
+  <div id="global-error"></div>
+
+  <section class="page active" id="page-demo">
+    <h2>Claims</h2>
+    <p class="lead">The three demo scenarios and every uploaded claim. All of them run through the same agents.</p>
+    <div class="grid" id="claims"></div>
+  </section>
+
+  <section class="page" id="page-new">
+    <h2>New claim</h2>
+    <p class="lead">Upload a real claim: PDF, TXT or MD files, up to 10 files of 5 MB. Scanned PDFs without a text layer are accepted but cannot be read (no OCR).</p>
+    <form class="card" id="new-form">
+      <div id="new-msg"></div>
+      <div class="form-grid">
+        <div><label for="f-claimant">Claimant</label><input id="f-claimant" name="claimant" required></div>
+        <div><label for="f-device">Device</label><input id="f-device" name="device" required></div>
+        <div><label for="f-serial">Serial number (optional)</label><input id="f-serial" name="serial"></div>
+        <div><label for="f-purchase">Purchase date (optional)</label><input id="f-purchase" name="purchase_date" type="date"></div>
+        <div><label for="f-incident">Incident date</label><input id="f-incident" name="incident_date" type="date" required></div>
+        <div><label for="f-policy">Policy</label><select id="f-policy" name="policy_id"><option value="">Uploaded policy document</option></select></div>
+      </div>
+      <div style="margin-top:14px"><label for="f-statement">What happened (customer statement)</label><textarea id="f-statement" name="statement" rows="4" required></textarea></div>
+      <div class="form-grid" style="margin-top:14px">
+        <div><label for="f-files">Claim documents (invoice, repair or diagnostic report)</label><input id="f-files" name="files" type="file" multiple accept=".pdf,.txt,.md" required></div>
+        <div><label for="f-policyfile">Policy document (only if no policy is chosen)</label><input id="f-policyfile" name="policy_file" type="file" accept=".pdf,.txt,.md"></div>
+      </div>
+      <div class="row" style="margin-top:16px"><button class="primary" type="submit">Save claim</button></div>
+    </form>
+  </section>
+
+  <section class="page" id="page-claim">
+    <div id="claim-head"></div>
+    <div class="card">
+      <div class="row">
+        <label for="pattern" style="margin:0">Pattern</label>
+        <select id="pattern"><option value="hierarchical">hierarchical</option><option value="sequential">sequential</option><option value="parallel">parallel</option></select>
+        <label for="style" style="margin:0">Prompt style</label>
+        <select id="style"><option value="direct">direct</option><option value="react">ReAct</option></select>
+        <button class="primary" id="run-btn">Investigate</button>
+        <span class="muted small" id="run-status"></span>
+      </div>
+      <h3>Agent timeline</h3>
+      <div class="timeline" id="timeline"><span class="muted">No run in this session yet.</span></div>
     </div>
-
-    <!-- Sticky Top Navigation -->
-    <header>
-        <div class="nav-brand-group">
-            <div class="brand-monogram">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                    <circle cx="11" cy="11" r="8"></circle>
-                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-                    <path d="M11 8v6"></path>
-                    <path d="M8 11h6"></path>
-                </svg>
-            </div>
-            <div class="brand-text-stack">
-                <div class="brand-heading">
-                    <span>ClaimSleuth</span>
-                    <span class="brand-version">v1.0-alpha</span>
-                </div>
-                <div class="brand-subheading">Agentic AI Warranty Investigation Command Center</div>
-            </div>
-        </div>
-
-        <div class="nav-controls">
-            <div class="system-telemetry-badge">
-                <span class="pulse-indicator"></span>
-                <span>Deterministic Verifier Active</span>
-            </div>
-            <div id="systemClaimStatus">
-                <span class="status-pill status-INITIALIZED">READY</span>
-            </div>
-            <button class="btn-tech-toggle" onclick="toggleTechDetails()">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="4 17 10 11 4 5"></polyline>
-                    <line x1="12" y1="19" x2="20" y2="19"></line>
-                </svg>
-                <span>Console</span>
-            </button>
-        </div>
-    </header>
-
-    <main class="app-shell">
-
-        <!-- Scenario Selection Ribbon -->
-        <section class="scenario-ribbon">
-            <div class="ribbon-header">
-                <div class="ribbon-label">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polygon points="12 2 2 7 12 12 22 7 12 2"></polygon>
-                        <polyline points="2 17 12 22 22 17"></polyline>
-                        <polyline points="2 12 12 17 22 12"></polyline>
-                    </svg>
-                    <span>Sample Investigation Scenarios</span>
-                </div>
-            </div>
-            <div class="scenarios-grid" id="scenariosGrid">
-                <!-- Dynamically loaded via loadScenarios() -->
-            </div>
-        </section>
-
-        <!-- Primary Investigation Workspace: Dossier + Evidence Core 3D -->
-        <section class="workspace-hero">
-            
-            <!-- Left Hero: Active Dossier & Command Trigger -->
-            <div class="case-dossier-card">
-                <div>
-                    <div class="case-eyebrow">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="8" x2="12" y2="12"></line>
-                            <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                        </svg>
-                        <span>Active Warranty Claim</span>
-                    </div>
-                    <h1 class="case-headline" id="metaClaimId">CLM-2024-001</h1>
-                    <p class="case-summary-text" id="caseSummaryText">
-                        Apple iPhone 15 Pro screen repair claim under active TechGuard policy. Multi-agent evidence synthesis ready for evaluation.
-                    </p>
-
-                    <div class="meta-chips-grid">
-                        <div class="meta-chip">
-                            <span class="meta-k">Policy ID</span>
-                            <span class="meta-v" id="metaPolicyId">POL-TECH-CARE-01</span>
-                        </div>
-                        <div class="meta-chip">
-                            <span class="meta-k">Claimant</span>
-                            <span class="meta-v" id="metaClaimant">Elena Rostova</span>
-                        </div>
-                        <div class="meta-chip">
-                            <span class="meta-k">Incident Date</span>
-                            <span class="meta-v" id="metaIncidentDate">2024-09-20</span>
-                        </div>
-                        <div class="meta-chip meta-chip-wide">
-                            <span class="meta-k">Investigation</span>
-                            <span class="meta-v" id="metaEngine">Checking…</span>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="hero-action-row">
-                    <button class="btn-investigate" id="runInvestigationBtn" onclick="runInvestigation()">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                            <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                        </svg>
-                        <span>Initiate Investigation</span>
-                    </button>
-                    <span class="investigation-hint">Plan → Execute → Observe → Dual-Gate</span>
-                </div>
-            </div>
-
-            <!-- Right Hero: THE EVIDENCE CORE 3D SHOWCASE -->
-            <div class="evidence-core-chamber" id="evidenceCoreChamber">
-                <div class="core-header-hud">
-                    <div class="hud-label">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="3"></circle>
-                            <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
-                        </svg>
-                        <span>Evidence Core Chamber</span>
-                    </div>
-                    <div class="hud-status-badge" id="hudCoreStatus">STANDBY</div>
-                </div>
-
-                <div class="evidence-canvas-wrapper" id="canvasWrapper">
-                    <canvas id="evidenceCoreCanvas"></canvas>
-                </div>
-
-                <div class="core-footer-hud">
-                    <span class="hud-telemetry-item">DIMENSIONAL PROJECTION: <strong>PERSPECTIVE 3D</strong></span>
-                    <span class="hud-telemetry-item" id="hudNodeCount">NODES: <strong>5 SYNTHESIZED</strong></span>
-                </div>
-            </div>
-
-        </section>
-
-        <!-- Results Summary Banner (Revealed Upon Investigation) -->
-        <section class="results-banner" id="resultsBanner">
-            <div class="results-banner-header">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path>
-                    <polyline points="22 4 12 14.01 9 11.01"></polyline>
-                </svg>
-                <span>Investigation Adjudication Synthesis</span>
-            </div>
-            <div class="results-grid">
-                <div class="result-card">
-                    <div class="result-card-label">Investigation Status</div>
-                    <div class="result-card-value" id="rStatus">—</div>
-                    <div class="result-card-note" id="rStatusNote">Awaiting trigger</div>
-                </div>
-                <div class="result-card">
-                    <div class="result-card-label">Coverage Status</div>
-                    <div class="result-card-value" id="rCoverage">—</div>
-                    <div class="result-card-note" id="rCoverageNote">Calculated deterministically</div>
-                </div>
-                <div class="result-card">
-                    <div class="result-card-label">Settlement Payout</div>
-                    <div class="result-card-value" id="rPayout">—</div>
-                    <div class="result-card-note" id="rPayoutNote">Repair − Deductible − Dep</div>
-                </div>
-                <div class="result-card">
-                    <div class="result-card-label">Human Review Gate</div>
-                    <div class="result-card-value" id="rApproval">—</div>
-                    <div class="result-card-note" id="rApprovalNote">HITL Policy Compliance</div>
-                </div>
-            </div>
-        </section>
-
-        <!-- Main Two-Column Forensic Grid -->
-        <section class="main-grid">
-
-            <!-- LEFT COLUMN: Stepper Timeline, Dual-Gate Verifier, Financial Settlement -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span>Forensic Investigation Timeline</span>
-                    </div>
-                    <span id="stepCounter" style="font-size: 0.68rem; color: var(--accent-cyan); font-family: var(--font-mono);">
-                        Adaptive Plan Execution
-                    </span>
-                </div>
-
-                <!-- Stepper Timeline -->
-                <div class="stepper-timeline" id="stepperTimeline">
-                    <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 2rem;">
-                        Select a claim and click <strong>"Initiate Investigation"</strong> to trigger the autonomous reasoning cycle.
-                    </div>
-                </div>
-
-                <!-- Dual-Gate Verifier Card -->
-                <div class="verifier-box" id="verifierCard" style="display: none;">
-                    <div class="verifier-header">
-                        <div>
-                            <div style="font-size: 0.85rem; font-weight: 800; color: #fff;">Dual-Gate Deterministic Verifier</div>
-                            <div style="font-size: 0.68rem; color: var(--text-secondary);">Zero-LLM Hallucination Authority</div>
-                        </div>
-                        <span class="v-badge pass" id="verifierBadge">VERIFIED PASS</span>
-                    </div>
-                    <div class="gate-checks">
-                        <div class="gate-card">
-                            <div class="gate-label">GATE 1: EVIDENCE SUBSTANTIATION</div>
-                            <div class="gate-status" id="gate1Status">
-                                <span style="color: var(--status-green);">✔ Verbatim Verified</span>
-                            </div>
-                        </div>
-                        <div class="gate-card">
-                            <div class="gate-label">GATE 2: RULES & ARITHMETIC</div>
-                            <div class="gate-status" id="gate2Status">
-                                <span style="color: var(--status-green);">✔ Passed</span>
-                            </div>
-                        </div>
-                    </div>
-                    <div id="discrepancyBox" style="margin-top: 0.65rem; font-size: 0.72rem; color: var(--status-red); font-family: var(--font-mono); display: none;"></div>
-                </div>
-
-                <!-- Financial Settlement Breakdown -->
-                <div class="math-box" id="mathBox" style="display: none;">
-                    <div class="math-header" id="mathHeader">Deterministic Settlement Breakdown</div>
-                    <div class="math-grid">
-                        <div class="math-cell">
-                            <div class="math-label">Repair Cost</div>
-                            <div class="math-val" id="mathCost">$0.00</div>
-                        </div>
-                        <div class="math-cell">
-                            <div class="math-label">Deductible</div>
-                            <div class="math-val" id="mathDeductible">-$0.00</div>
-                        </div>
-                        <div class="math-cell">
-                            <div class="math-label">Depreciation</div>
-                            <div class="math-val" id="mathDep">-$0.00</div>
-                        </div>
-                        <div class="math-cell">
-                            <div class="math-label" id="mathPayoutLabel">Payout</div>
-                            <div class="math-val" id="mathPayout">$0.00</div>
-                        </div>
-                    </div>
-                    <div id="mathExplanation" style="font-size: 0.7rem; color: var(--text-secondary); font-family: var(--font-mono); text-align: center;"></div>
-                </div>
-            </div>
-
-            <!-- RIGHT COLUMN: Evidence Dossier, Human Review -->
-            <div class="panel">
-                <div class="panel-header">
-                    <div class="panel-title">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span>Evidence Dossier & Human Review</span>
-                    </div>
-                </div>
-
-                <!-- Document Tabs & Viewer -->
-                <div>
-                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">
-                        Source Evidence Documents
-                    </div>
-                    <div class="doc-tabs" id="docTabs"></div>
-                    <div class="doc-preview" id="docContent">Select a document above to inspect source text...</div>
-                </div>
-
-                <!-- Extracted Facts -->
-                <div>
-                    <div style="font-size: 0.68rem; font-weight: 700; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.4rem;">
-                        Extracted Facts & Verbatim Quotes
-                    </div>
-                    <div class="evidence-list" id="evidenceList">
-                        <div class="dossier-empty">Extracted facts and their verbatim quotes will appear here after an investigation runs.</div>
-                    </div>
-                </div>
-
-                <!-- Human In The Loop (HITL) Adjudication -->
-                <div class="hitl-box" id="hitlBox">
-                    <div class="hitl-title">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
-                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                            <circle cx="12" cy="7" r="4"></circle>
-                        </svg>
-                        <span>Human-in-the-Loop Adjudication</span>
-                    </div>
-                    <div class="hitl-desc">
-                        Enforced for settlements exceeding $150 threshold, claim denials, and flagged discrepancies.
-                    </div>
-                    <!-- Outcome and controls come from the server's response (renderReviewPanel) -->
-                    <div class="hitl-outcome" id="hitlOutcome">
-                        <span>No investigation has run for this claim yet. Its outcome and the decisions available will appear here.</span>
-                    </div>
-                    <textarea id="humanNotesInput" hidden placeholder="Adjudicator rationale or settlement notes..." style="width: 100%; margin-top: 0.65rem; background: rgba(0,0,0,0.4); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 0.5rem; color: #fff; font-family: var(--font-sans); font-size: 0.74rem; resize: vertical; height: 42px;"></textarea>
-                    <div class="hitl-actions">
-                        <button class="btn-action btn-approve" id="btnDecisionAPPROVED" hidden onclick="adjudicate('APPROVED')">
-                            ✔ Approve Payout
-                        </button>
-                        <button class="btn-action btn-reject" id="btnDecisionREJECTED" hidden onclick="adjudicate('REJECTED')">
-                            ✖ Reject Claim
-                        </button>
-                        <button class="btn-action btn-info" id="btnDecisionINFO_REQUESTED" hidden onclick="adjudicate('INFO_REQUESTED')">
-                            ✉ Request Info
-                        </button>
-                    </div>
-                </div>
-
-            </div>
-
-        </section>
-
-        <!-- Collapsible Technical Console -->
-        <section class="tech-details">
-            <button class="tech-toggle" id="techToggle" onclick="toggleTechDetails()">
-                <span class="tech-toggle-icon">▶</span>
-                <span>Technical Console — Blackboard Shared Memory, Agent Messages, MCP</span>
-                <div class="tech-toggle-badges">
-                    <!-- Set from the last investigation's actual report (renderConsoleBadges) -->
-                    <span class="tech-badge" id="mcpBadge" style="background: rgba(103, 221, 245, 0.15); color: var(--accent-cyan); border: 1px solid rgba(103, 221, 245, 0.3);">MCP: no run yet</span>
-                    <span class="tech-badge" id="crewBadge" style="background: rgba(129, 140, 248, 0.15); color: var(--status-indigo); border: 1px solid rgba(129, 140, 248, 0.3);">CrewAI: no run yet</span>
-                </div>
-            </button>
-            <div class="tech-content" id="techContent">
-                
-                <!-- Telemetry Metrics Bar -->
-                <div class="tech-metrics-bar">
-                    <div>
-                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Execution Latency</div>
-                        <div id="metricLatency" style="font-size: 1.15rem; font-weight: 800; color: var(--accent-cyan); font-family: var(--font-mono);">-- ms</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Tools Executed</div>
-                        <div id="metricTools" style="font-size: 1.15rem; font-weight: 800; color: #fff; font-family: var(--font-mono);">0</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Adaptive Replans</div>
-                        <div id="metricReplans" style="font-size: 1.15rem; font-weight: 800; color: var(--status-amber); font-family: var(--font-mono);">0</div>
-                    </div>
-                    <div>
-                        <div style="font-size: 0.62rem; color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.06em;">Blackboard Facts</div>
-                        <div id="metricFacts" style="font-size: 1.15rem; font-weight: 800; color: var(--status-green); font-family: var(--font-mono);">0</div>
-                    </div>
-                </div>
-
-                <!-- Blackboard Facts + A2A Message Bus -->
-                <div class="tech-split">
-                    <div>
-                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem; display: flex; justify-content: space-between;">
-                            <span>Blackboard Working Memory</span>
-                            <span id="factCountBadge" style="font-family: var(--font-mono); color: var(--accent-cyan);">0 Facts</span>
-                        </div>
-                        <div id="blackboardFactsContainer" class="console-list">
-                            <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No facts in working memory.</div>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div style="font-size: 0.72rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.45rem; display: flex; justify-content: space-between;">
-                            <span>Agent Message Log (in-memory, not A2A protocol)</span>
-                            <span id="a2aCountBadge" style="font-family: var(--font-mono); color: var(--status-indigo);">0 Messages</span>
-                        </div>
-                        <div id="a2aMessagesContainer" class="console-list">
-                            <div style="color: var(--text-secondary); text-align: center; padding: 1.25rem;">No agent messages exchanged yet.</div>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-    </main>
-
-    <!-- ==========================================================================
-       JAVASCRIPT LOGIC & 3D EVIDENCE CORE ENGINE
-       ========================================================================== -->
-    <script>
-        // State
-        let currentScenario = 'scenario_1_valid';
-        let currentClaimId = 'CLM-2024-001';
-        let currentDocs = {};
-        let currentDocsScenario = null;   // which scenario currentDocs belongs to
-        let activeInvestigationState = null;
-        // Bumped on every scenario switch / new run: a response for an older one is ignored
-        let investigationSeq = 0;
-        let docsSeq = 0;
-
-        // ==========================================================================
-        // 3D EVIDENCE CORE ENGINE (Pure Canvas Mathematics, Zero Heavy Dependencies)
-        // ==========================================================================
-        class EvidenceCoreEngine {
-            constructor(canvasId) {
-                this.canvas = document.getElementById(canvasId);
-                if (!this.canvas) return;
-                this.ctx = this.canvas.getContext('2d');
-                this.wrapper = this.canvas.parentElement;
-                
-                // Rotational physics & smooth lerp
-                this.rotX = 0.25;
-                this.rotY = 0.35;
-                this.targetRotX = 0.25;
-                this.targetRotY = 0.35;
-                this.baseSpeed = 0.004;
-                
-                // Mouse interaction
-                this.mouseX = 0;
-                this.mouseY = 0;
-                this.isHovered = false;
-
-                // Investigation Evidence Nodes (Connected to Real Backend Data)
-                this.nodes = [
-                    { id: 'docs', label: 'SOURCE DOSSIER', angle: 0, radius: 105, tilt: 0.3, state: 'idle' },
-                    { id: 'rules', label: 'WARRANTY RULES', angle: 1.25, radius: 115, tilt: -0.4, state: 'idle' },
-                    { id: 'math', label: 'SETTLEMENT MATH', angle: 2.5, radius: 110, tilt: 0.6, state: 'idle' },
-                    { id: 'anomaly', label: 'ANOMALY CHECKS', angle: 3.75, radius: 120, tilt: -0.2, state: 'idle' },
-                    { id: 'verifier', label: 'DUAL-GATE GATEWAY', angle: 5.0, radius: 110, tilt: 0.5, state: 'idle' }
-                ];
-
-                this.initListeners();
-                this.resize();
-                this.animate = this.animate.bind(this);
-                requestAnimationFrame(this.animate);
-            }
-
-            initListeners() {
-                window.addEventListener('resize', () => this.resize());
-
-                const chamber = document.getElementById('evidenceCoreChamber');
-                if (chamber) {
-                    chamber.addEventListener('mousemove', (e) => {
-                        const rect = chamber.getBoundingClientRect();
-                        const x = (e.clientX - rect.left) / rect.width - 0.5;
-                        const y = (e.clientY - rect.top) / rect.height - 0.5;
-                        this.targetRotY = x * 1.5;
-                        this.targetRotX = -y * 1.5;
-                    });
-
-                    chamber.addEventListener('mouseleave', () => {
-                        this.targetRotX = 0.25;
-                        this.targetRotY = 0.35;
-                    });
-                }
-            }
-
-            resize() {
-                if (!this.canvas || !this.wrapper) return;
-                const dpr = window.devicePixelRatio || 1;
-                const rect = this.wrapper.getBoundingClientRect();
-                this.width = rect.width;
-                this.height = rect.height;
-                this.canvas.width = this.width * dpr;
-                this.canvas.height = this.height * dpr;
-                this.ctx.scale(dpr, dpr);
-            }
-
-            // Update node states based on actual backend investigation data
-            updateRealDataState(state) {
-                if (!state) {
-                    this.nodes.forEach(n => n.state = 'idle');
-                    document.getElementById('hudCoreStatus').innerText = 'STANDBY';
-                    document.getElementById('hudCoreStatus').style.color = 'var(--text-secondary)';
-                    return;
-                }
-
-                // Node 0: Dossier
-                const evCount = Object.keys(state.evidence || {}).length;
-                this.nodes[0].state = evCount > 0 ? 'verified' : 'idle';
-
-                // Node 1: Warranty Rules
-                const isRejected = state.status && state.status.includes('REJECTED');
-                this.nodes[1].state = isRejected ? 'failed' : 'verified';
-
-                // Node 2: Settlement Math
-                this.nodes[2].state = state.deterministic_settlement ? 'verified' : (isRejected ? 'failed' : 'idle');
-
-                // Node 3: Anomaly / Conflict
-                const hasConflicts = (state.conflicts && state.conflicts.length > 0) || (state.status && state.status.includes('CONFLICT'));
-                this.nodes[3].state = hasConflicts ? 'failed' : 'verified';
-
-                // Node 4: Verifier
-                const rep = state.verifier_report;
-                if (rep && rep.is_approved_by_verifier) {
-                    this.nodes[4].state = 'verified';
-                } else if (rep && !rep.is_approved_by_verifier) {
-                    this.nodes[4].state = 'failed';
-                } else {
-                    this.nodes[4].state = hasConflicts ? 'escalated' : 'idle';
-                }
-
-                const hudStatus = document.getElementById('hudCoreStatus');
-                if (hudStatus) {
-                    if (state.status.includes('VERIFIED')) {
-                        hudStatus.innerText = 'VERIFIED';
-                        hudStatus.style.color = 'var(--status-green)';
-                    } else if (state.status.includes('REJECTED')) {
-                        hudStatus.innerText = 'REJECTED';
-                        hudStatus.style.color = 'var(--status-red)';
-                    } else if (state.status.includes('CONFLICT')) {
-                        hudStatus.innerText = 'ESCALATED';
-                        hudStatus.style.color = 'var(--status-amber)';
-                    }
-                }
-            }
-
-            // Project 3D coordinate (x, y, z) into 2D canvas space with perspective
-            project(x, y, z) {
-                // Apply rotation around X and Y
-                const cosY = Math.cos(this.rotY);
-                const sinY = Math.sin(this.rotY);
-                const cosX = Math.cos(this.rotX);
-                const sinX = Math.sin(this.rotX);
-
-                // Y-axis rotation
-                let x1 = x * cosY - z * sinY;
-                let z1 = z * cosY + x * sinY;
-
-                // X-axis rotation
-                let y2 = y * cosX - z1 * sinX;
-                let z2 = z1 * cosX + y * sinX;
-
-                // Perspective projection
-                const fov = 340;
-                const cameraDist = 320;
-                const scale = fov / (cameraDist + z2);
-                
-                const projX = this.width / 2 + x1 * scale;
-                const projY = this.height / 2 + y2 * scale;
-
-                return { x: projX, y: projY, scale, z: z2 };
-            }
-
-            drawOrbitalRing(radius, tiltAngle, phase, color, lineWidth = 1) {
-                const steps = 60;
-                this.ctx.beginPath();
-                for (let i = 0; i <= steps; i++) {
-                    const theta = (i / steps) * Math.PI * 2;
-                    const x = Math.cos(theta) * radius;
-                    const y = Math.sin(theta) * radius * Math.cos(tiltAngle);
-                    const z = Math.sin(theta) * radius * Math.sin(tiltAngle);
-                    const p = this.project(x, y, z);
-                    if (i === 0) this.ctx.moveTo(p.x, p.y);
-                    else this.ctx.lineTo(p.x, p.y);
-                }
-                this.ctx.strokeStyle = color;
-                this.ctx.lineWidth = lineWidth;
-                this.ctx.stroke();
-            }
-
-            animate() {
-                // Interpolate rotations smoothly
-                this.rotX += (this.targetRotX - this.rotX) * 0.05;
-                this.rotY += (this.targetRotY - this.rotY) * 0.05;
-                this.rotY += this.baseSpeed;
-
-                this.ctx.clearRect(0, 0, this.width, this.height);
-
-                const cx = this.width / 2;
-                const cy = this.height / 2;
-
-                // Draw central radiant glow
-                const grad = this.ctx.createRadialGradient(cx, cy, 5, cx, cy, 95);
-                grad.addColorStop(0, 'rgba(103, 221, 245, 0.35)');
-                grad.addColorStop(0.5, 'rgba(103, 221, 245, 0.08)');
-                grad.addColorStop(1, 'transparent');
-                this.ctx.fillStyle = grad;
-                this.ctx.beginPath();
-                this.ctx.arc(cx, cy, 95, 0, Math.PI * 2);
-                this.ctx.fill();
-
-                // Draw 3 dimensional orbital rings
-                this.drawOrbitalRing(75, 0.4, 0, 'rgba(103, 221, 245, 0.3)', 1.2);
-                this.drawOrbitalRing(85, -0.6, 0.5, 'rgba(129, 140, 248, 0.22)', 1.0);
-                this.drawOrbitalRing(65, 1.2, 1.0, 'rgba(103, 221, 245, 0.18)', 0.8);
-
-                // Central Core Sphere
-                const coreProj = this.project(0, 0, 0);
-                this.ctx.beginPath();
-                this.ctx.arc(coreProj.x, coreProj.y, 14 * coreProj.scale, 0, Math.PI * 2);
-                this.ctx.fillStyle = '#67DDF5';
-                this.ctx.shadowColor = '#67DDF5';
-                this.ctx.shadowBlur = 18;
-                this.ctx.fill();
-                this.ctx.shadowBlur = 0;
-
-                // Sort nodes by depth (z) to render back-to-front
-                const projectedNodes = this.nodes.map(n => {
-                    const currentAngle = n.angle + this.rotY * 0.75;
-                    const x = Math.cos(currentAngle) * n.radius;
-                    const y = Math.sin(currentAngle) * n.radius * Math.sin(n.tilt);
-                    const z = Math.sin(currentAngle) * n.radius * Math.cos(n.tilt);
-                    const proj = this.project(x, y, z);
-                    return { ...n, proj };
-                }).sort((a, b) => a.proj.z - b.proj.z);
-
-                // Draw Nodes and Connecting Filaments
-                projectedNodes.forEach(node => {
-                    const p = node.proj;
-
-                    // Filament to center core
-                    this.ctx.beginPath();
-                    this.ctx.moveTo(coreProj.x, coreProj.y);
-                    this.ctx.lineTo(p.x, p.y);
-                    this.ctx.strokeStyle = 'rgba(103, 221, 245, 0.15)';
-                    this.ctx.lineWidth = 1;
-                    this.ctx.stroke();
-
-                    // Node appearance based on real status
-                    let nodeColor = '#8996A3';
-                    let glowColor = 'rgba(137, 150, 163, 0.2)';
-                    if (node.state === 'verified') {
-                        nodeColor = '#34D399';
-                        glowColor = 'rgba(52, 211, 153, 0.4)';
-                    } else if (node.state === 'failed') {
-                        nodeColor = '#F87171';
-                        glowColor = 'rgba(248, 113, 113, 0.4)';
-                    } else if (node.state === 'escalated') {
-                        nodeColor = '#E9BD73';
-                        glowColor = 'rgba(233, 189, 115, 0.4)';
-                    }
-
-                    // Outer orbit node dot
-                    this.ctx.beginPath();
-                    this.ctx.arc(p.x, p.y, 6 * p.scale, 0, Math.PI * 2);
-                    this.ctx.fillStyle = nodeColor;
-                    this.ctx.shadowColor = glowColor;
-                    this.ctx.shadowBlur = 10;
-                    this.ctx.fill();
-                    this.ctx.shadowBlur = 0;
-
-                    // Label
-                    this.ctx.font = `600 ${Math.max(8, 9 * p.scale)}px var(--font-mono)`;
-                    this.ctx.fillStyle = p.z > 0 ? '#F2F5F7' : '#8996A3';
-                    this.ctx.fillText(node.label, p.x + 9, p.y + 3);
-                });
-
-                requestAnimationFrame(this.animate);
-            }
-        }
-
-        let evidenceEngine = null;
-
-        // ==========================================================================
-        // UI INTERACTION & BACKEND INTEGRATIONS
-        // ==========================================================================
-
-        function toggleTechDetails() {
-            const toggle = document.getElementById('techToggle');
-            const content = document.getElementById('techContent');
-            toggle.classList.toggle('open');
-            content.classList.toggle('visible');
-        }
-
-        async function loadScenarios() {
-            try {
-                const res = await fetch('/api/scenarios');
-                const scenarios = await res.json();
-                const container = document.getElementById('scenariosGrid');
-                container.innerHTML = '';
-
-                scenarios.forEach((sc) => {
-                    const card = document.createElement('div');
-                    card.className = `scenario-card ${sc.id === currentScenario ? 'active' : ''}`;
-                    card.id = `sc-card-${sc.id}`;
-                    card.onclick = () => selectScenario(sc.id);
-                    card.innerHTML = `
-                        <span class="sc-badge ${sc.badge_color}">${sc.badge}</span>
-                        <div class="sc-title">${sc.title}</div>
-                        <div class="sc-desc">${sc.summary}</div>
-                        <div class="sc-expect"><strong>Expected:</strong> ${sc.expected}</div>
-                    `;
-                    container.appendChild(card);
-                });
-
-                selectScenario(currentScenario);
-            } catch (err) {
-                console.error("Error loading scenarios:", err);
-            }
-        }
-
-        async function selectScenario(scenarioId) {
-            currentScenario = scenarioId;
-            investigationSeq++;                 // results of a run for the previous selection are now stale
-            const mySeq = ++docsSeq;
-            currentDocs = {};
-            currentDocsScenario = null;
-            document.getElementById('docTabs').replaceChildren();
-            document.getElementById('docContent').textContent = 'Loading documents…';
-            resetInvestigateButton();
-            document.querySelectorAll('.scenario-card').forEach(c => c.classList.remove('active'));
-            const card = document.getElementById(`sc-card-${scenarioId}`);
-            if (card) card.classList.add('active');
-
-            // Reset UI and Evidence Core
-            clearInvestigationView();
-            document.getElementById('stepperTimeline').innerHTML = `
-                <div style="font-size: 0.8rem; color: var(--text-secondary); text-align: center; padding: 2rem;">
-                    Click <strong>"Initiate Investigation"</strong> to run the adaptive multi-agent reasoning cycle.
-                </div>
-            `;
-            renderEvidenceMessage('Extracted facts and their verbatim quotes will appear here after an investigation runs.');
-            renderReviewPanel(null);
-            updateStatusPill("INITIALIZED");
-
-            try {
-                const res = await fetch(`/api/scenario/${scenarioId}/docs`);
-                const data = await res.json();
-                if (mySeq !== docsSeq) return;   // another scenario was selected meanwhile
-                if (!res.ok) {
-                    document.getElementById('docContent').textContent = `Documents could not be loaded (HTTP ${res.status}).`;
-                    return;
-                }
-                currentDocs = data.documents || {};
-                currentDocsScenario = scenarioId;
-                const meta = data.claim_meta;
-                currentClaimId = meta.claim_id;
-
-                document.getElementById('metaClaimId').innerText = meta.claim_id || 'N/A';
-                document.getElementById('metaPolicyId').innerText = meta.policy_id || 'N/A';
-                document.getElementById('metaClaimant').innerText = meta.claimant_name || 'N/A';
-                document.getElementById('metaIncidentDate').innerText = meta.incident_date || 'N/A';
-
-                const summaryText = document.getElementById('caseSummaryText');
-                if (scenarioId === 'scenario_1_valid') {
-                    summaryText.innerText = "Apple iPhone 15 Pro cracked screen repair claim under active TechGuard policy. Valid purchase invoice and repair receipt ready for automated verification.";
-                } else if (scenarioId === 'scenario_2_expired') {
-                    summaryText.innerText = "OmniLaptop power IC motherboard failure claimed after the 12-month coverage window expired. Deterministic warranty rule engine will evaluate expiration.";
-                } else if (scenarioId === 'scenario_3_conflict') {
-                    summaryText.innerText = "ArcticFrost Refrigerator repair bill with serial number mismatch relative to the original purchase invoice. Potential fraud / anomaly escalation scenario.";
-                }
-
-                renderDocTabs();
-            } catch (err) {
-                console.error("Error loading scenario docs:", err);
-                if (mySeq === docsSeq) document.getElementById('docContent').textContent = 'Documents could not be loaded.';
-            }
-        }
-
-        function renderDocTabs() {
-            const tabsContainer = document.getElementById('docTabs');
-            tabsContainer.replaceChildren();
-            const docs = currentDocs;          // the tabs always show the documents they were built from
-            const fileNames = Object.keys(docs).sort();
-            if (fileNames.length === 0) {
-                document.getElementById('docContent').textContent = "No documents found in claim dossier.";
-                return;
-            }
-
-            fileNames.forEach((fname, idx) => {
-                const tab = document.createElement('div');
-                tab.className = `doc-tab ${idx === 0 ? 'active' : ''}`;
-                tab.textContent = fname;
-                tab.onclick = () => {
-                    tabsContainer.querySelectorAll('.doc-tab').forEach(t => t.classList.remove('active'));
-                    tab.classList.add('active');
-                    document.getElementById('docContent').textContent = docs[fname];
-                };
-                tabsContainer.appendChild(tab);
-            });
-
-            document.getElementById('docContent').textContent = docs[fileNames[0]];
-        }
-
-        // Hide the previous run's result (used on scenario switch and when a run fails)
-        function clearInvestigationView() {
-            activeInvestigationState = null;
-            if (evidenceEngine) evidenceEngine.updateRealDataState(null);
-            document.getElementById('resultsBanner').classList.remove('visible');
-            document.getElementById('verifierCard').style.display = 'none';
-            document.getElementById('mathBox').style.display = 'none';
-        }
-
-        function showInvestigationFailed(message) {
-            clearInvestigationView();
-            document.getElementById('stepperTimeline').innerHTML = `
-                <div style="font-size: 0.8rem; color: var(--status-red); text-align: center; padding: 2rem;">
-                    The investigation did not complete; no results are shown.
-                </div>
-            `;
-            updateStatusPill('INVESTIGATION_FAILED');
-            renderEvidenceMessage(message, true);
-            renderReviewPanel({ error: 'The investigation did not complete, so no decision is possible.' });
-        }
-
-        function resetInvestigateButton(label = 'Initiate Investigation') {
-            const btn = document.getElementById('runInvestigationBtn');
-            btn.disabled = false;
-            btn.innerHTML = `
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <polygon points="5 3 19 12 5 21 5 3"></polygon>
-                </svg>
-                <span>${label}</span>
-            `;
-        }
-
-        async function runInvestigation() {
-            const mySeq = ++investigationSeq;
-            const scenarioAtStart = currentScenario;
-            const isCurrent = () => mySeq === investigationSeq && scenarioAtStart === currentScenario;
-            renderEvidenceMessage('Investigation in progress: extracting facts from the documents…');
-            renderReviewPanel({ loading: true });
-            const btn = document.getElementById('runInvestigationBtn');
-            btn.disabled = true;
-            btn.innerHTML = `
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="pulse-indicator">
-                    <circle cx="12" cy="12" r="10"></circle>
-                </svg>
-                <span>Synthesizing Evidence...</span>
-            `;
-
-            try {
-                const engine = 'adk';
-                const url = `/api/adk/investigate/${currentScenario}`;
-                const res = await fetch(url, { method: 'POST' });
-                const data = await res.json();
-                if (!isCurrent()) return;        // the user switched scenario or started another run
-                if (!res.ok) {
-                    showInvestigationFailed(`Investigation failed (HTTP ${res.status}); there are no extracted facts to show.`);
-                    alert(`Investigation failed (HTTP ${res.status}): ${typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail)}`);
-                    return;
-                }
-                const state = data.state;
-                const blackboard = data.blackboard;
-                const monitoring = data.monitoring;
-
-                activeInvestigationState = state;
-                renderRuntimeStatus(data.runtime, data.report);
-                renderConsoleBadges(data.report || null, engine);
-                renderInvestigationResults(state, blackboard, monitoring, data.payout, data.allowed_decisions);
-
-                // Update 3D Evidence Core with real response data
-                if (evidenceEngine) {
-                    evidenceEngine.updateRealDataState(state);
-                }
-            } catch (err) {
-                console.error("Investigation failed:", err);
-                if (isCurrent()) showInvestigationFailed('Investigation failed; there are no extracted facts to show.');
-            } finally {
-                if (mySeq === investigationSeq) resetInvestigateButton('Re-Run Investigation');
-            }
-        }
-
-        // Renders the payout card and settlement breakdown from the server's payout view.
-        // Only AUTHORIZED is shown as approved; PROPOSED is pending; anything else is
-        // a non-payable claim whose figure (if any) is labelled as a diagnostic calculation.
-        function renderPayout(payout) {
-            const payEl = document.getElementById('rPayout');
-            const payNote = document.getElementById('rPayoutNote');
-            const mathBox = document.getElementById('mathBox');
-            const payLabel = document.getElementById('mathPayoutLabel');
-            const mathPayout = document.getElementById('mathPayout');
-            const status = payout ? payout.payout_status : 'NOT_PAYABLE';
-
-            if (status === 'AUTHORIZED') {
-                payEl.innerText = `$${payout.authorized_payout.toFixed(2)}`;
-                payEl.className = 'result-card-value approved';
-                payNote.innerText = 'Authorized by human reviewer';
-                payLabel.innerText = 'Authorized Payout';
-                mathPayout.className = 'math-val approved';
-            } else if (status === 'PROPOSED_PENDING_APPROVAL') {
-                payEl.innerText = `$${payout.proposed_payout.toFixed(2)}`;
-                payEl.className = 'result-card-value escalated';
-                payNote.innerText = 'Proposed — awaiting human approval';
-                payLabel.innerText = 'Proposed Payout (not approved)';
-                mathPayout.className = 'math-val';
-            } else {
-                payEl.innerText = 'Not payable';
-                payEl.className = 'result-card-value rejected';
-                payNote.innerText = payout && payout.diagnostic_calculation
-                    ? `Diagnostic calc $${payout.diagnostic_calculation.approved_payout.toFixed(2)} — not authorized`
-                    : (payout ? payout.explanation.substring(0, 60) : 'Not calculated');
-                payLabel.innerText = 'Diagnostic Only — Not Authorized';
-                mathPayout.className = 'math-val';
-            }
-
-            const calc = (activeInvestigationState && activeInvestigationState.deterministic_settlement)
-                || (payout && payout.diagnostic_calculation);
-            if (calc) {
-                mathBox.style.display = 'block';
-                document.getElementById('mathHeader').innerText = status === 'NOT_PAYABLE'
-                    ? 'Diagnostic Settlement Calculation (claim not payable)'
-                    : 'Deterministic Settlement Breakdown';
-                document.getElementById('mathCost').innerText = `$${calc.repair_cost.toFixed(2)}`;
-                document.getElementById('mathDeductible').innerText = `-$${calc.deductible.toFixed(2)}`;
-                document.getElementById('mathDep').innerText = `-$${calc.depreciation_applied.toFixed(2)}`;
-                mathPayout.innerText = `$${calc.approved_payout.toFixed(2)}`;
-                document.getElementById('mathExplanation').innerText = payout
-                    ? `${calc.formula_explanation} ${payout.explanation}`
-                    : calc.formula_explanation;
-            } else {
-                mathBox.style.display = 'none';
-            }
-        }
-
-        // <dossier-helpers> Pure helpers (no DOM); tests/test_dashboard_dossier.py runs them in Node.
-        // 1-based line of the first verbatim occurrence of `snippet` in `docText`; null if it is not there.
-        function locateQuote(docText, snippet) {
-            if (typeof docText !== 'string' || typeof snippet !== 'string' || !snippet.trim()) return null;
-            const at = docText.indexOf(snippet);
-            return at < 0 ? null : docText.slice(0, at).split('\n').length;
-        }
-
-        const DECISION_ORDER = ['APPROVED', 'REJECTED', 'INFO_REQUESTED'];
-
-        // What the review panel says, from the server's own fields. Without allowed_decisions no control is shown.
-        function reviewSummary(status, payout, allowedDecisions, requiresHumanApproval) {
-            const money = v => (typeof v === 'number' ? `$${v.toFixed(2)}` : '—');
-            const payoutStatus = payout ? payout.payout_status : 'NOT_PAYABLE';
-            let payoutLine;
-            if (payoutStatus === 'AUTHORIZED') {
-                payoutLine = `Authorized payout: ${money(payout.authorized_payout)} (approved by a human reviewer)`;
-            } else if (payoutStatus === 'PROPOSED_PENDING_APPROVAL') {
-                payoutLine = `Proposed settlement: ${money(payout.proposed_payout)} (not paid unless a human approves it)`;
-            } else {
-                payoutLine = 'Not payable: no settlement can be approved for this claim';
-            }
-            const known = Array.isArray(allowedDecisions);
-            const decisions = known ? DECISION_ORDER.filter(d => allowedDecisions.includes(d)) : [];
-            let reviewLine;
-            if (String(status).startsWith('CLOSED_')) reviewLine = 'A final human decision is recorded; no further decisions are possible.';
-            else if (!known) reviewLine = 'The server did not report which decisions are allowed, so no controls are shown.';
-            else if (decisions.length === 0) reviewLine = 'No human decision is possible in this state.';
-            else if (!decisions.includes('APPROVED')) reviewLine = 'Human review required. Approval is not possible: the claim can only be rejected or sent back for more information.';
-            else reviewLine = requiresHumanApproval ? 'Human review required before any payout.' : 'A human decision is available.';
-            return { statusLabel: String(status || '').replace(/_/g, ' '), payoutLine, reviewLine, decisions };
-        }
-        // </dossier-helpers>
-
-        // review: null (nothing run yet) | {loading} | {error} | {status, payout, allowed, requiresHuman}
-        function renderReviewPanel(review) {
-            const box = document.getElementById('hitlOutcome');
-            box.replaceChildren();
-            const line = (text, label) => {
-                const el = document.createElement('span');
-                if (label) {
-                    const strong = document.createElement('strong');
-                    strong.textContent = label;
-                    el.append(strong, ' ');
-                }
-                el.append(text);
-                box.appendChild(el);
-            };
-            let decisions = [];
-            if (!review) {
-                line('No investigation has run for this claim yet. Its outcome and the decisions available will appear here.');
-            } else if (review.loading) {
-                line('Investigation in progress…');
-            } else if (review.error) {
-                line(review.error);
-            } else {
-                const s = reviewSummary(review.status, review.payout, review.allowed, review.requiresHuman);
-                line(s.statusLabel, 'Outcome:');
-                line(s.payoutLine);
-                line(s.reviewLine);
-                decisions = s.decisions;
-            }
-            DECISION_ORDER.forEach(d => {
-                const btn = document.getElementById(`btnDecision${d}`);
-                btn.hidden = !decisions.includes(d);
-                btn.disabled = false;
-            });
-            document.getElementById('humanNotesInput').hidden = decisions.length === 0;
-        }
-
-        function renderEvidenceMessage(text, isError = false) {
-            const msg = document.createElement('div');
-            msg.className = isError ? 'dossier-empty error' : 'dossier-empty';
-            msg.textContent = text;
-            document.getElementById('evidenceList').replaceChildren(msg);
-        }
-
-        // docs: this claim's documents (or null if not loaded), used only to find the quote's line
-        function renderEvidenceList(evidence, docs) {
-            const items = Object.values(evidence || {});
-            if (items.length === 0) {
-                renderEvidenceMessage('The investigation finished but no facts were extracted from the documents.');
-                return;
-            }
-            const evList = document.getElementById('evidenceList');
-            evList.replaceChildren();
-            items.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'evidence-card';
-
-                const header = document.createElement('div');
-                header.className = 'evidence-header';
-                const field = document.createElement('span');
-                field.className = 'ev-field';
-                field.textContent = item.field_name;
-                const status = document.createElement('span');
-                status.className = `ev-status ${String(item.status || '').toLowerCase()}`;
-                status.textContent = `${item.status} (${Math.round((item.confidence || 0) * 100)}%)`;
-                header.append(field, status);
-
-                const value = document.createElement('div');
-                value.className = 'ev-value';
-                value.textContent = String(item.extracted_value);
-                card.append(header, value);
-
-                if (item.raw_snippet) {
-                    const quote = document.createElement('div');
-                    quote.className = 'ev-quote';
-                    quote.textContent = `"${item.raw_snippet}"`;
-                    card.appendChild(quote);
-                }
-
-                const meta = document.createElement('div');
-                meta.className = 'ev-meta';
-                const source = document.createElement('span');
-                let where = '';
-                if (docs && typeof docs[item.source_document] === 'string') {
-                    const lineNo = locateQuote(docs[item.source_document], item.raw_snippet);
-                    where = lineNo ? ` · line ${lineNo}` : ' · quote not found verbatim in this document';
-                }
-                source.textContent = `Source: ${item.source_document}${where}`;
-                const ref = document.createElement('span');
-                ref.textContent = item.evidence_id;
-                meta.append(source, ref);
-                card.appendChild(meta);
-
-                if (item.verification_notes) {
-                    const note = document.createElement('div');
-                    note.className = 'ev-note';
-                    note.textContent = item.verification_notes;
-                    card.appendChild(note);
-                }
-                evList.appendChild(card);
-            });
-        }
-
-        function renderInvestigationResults(state, blackboard, monitoring, payout, allowedDecisions) {
-            updateStatusPill(state.status);
-
-            // ---- Results Summary Banner ----
-            const banner = document.getElementById('resultsBanner');
-            banner.classList.add('visible');
-
-            const statusEl = document.getElementById('rStatus');
-            const statusNote = document.getElementById('rStatusNote');
-            const statusLabel = state.status.replace(/_/g, ' ');
-            statusEl.innerText = statusLabel;
-            statusEl.className = 'result-card-value';
-            
-            if (state.status.includes('VERIFIED') || state.status.includes('SETTLED')) {
-                statusEl.classList.add('approved');
-                statusNote.innerText = 'Passed independent dual-gate verification';
-            } else if (state.status.includes('REJECTED')) {
-                statusEl.classList.add('rejected');
-                statusNote.innerText = 'Deterministic policy check rejection';
-            } else if (state.status.includes('CONFLICT') || state.status.includes('ESCALATED')) {
-                statusEl.classList.add('escalated');
-                statusNote.innerText = 'Data conflict flagged for human review';
-            } else {
-                statusNote.innerText = '';
-            }
-
-            // Coverage
-            const covEl = document.getElementById('rCoverage');
-            const covNote = document.getElementById('rCoverageNote');
-            if (state.status.includes('REJECTED') && state.verifier_report && state.verifier_report.discrepancies.some(d => d.toLowerCase().includes('expired'))) {
-                covEl.innerText = 'EXPIRED';
-                covEl.className = 'result-card-value rejected';
-                covNote.innerText = 'Incident outside active warranty window';
-            } else if (state.status.includes('CONFLICT')) {
-                covEl.innerText = 'CONFLICT';
-                covEl.className = 'result-card-value escalated';
-                covNote.innerText = state.conflicts?.[0]?.substring(0, 45) || 'Discrepancy detected';
-            } else if (state.deterministic_settlement) {
-                covEl.innerText = 'ACTIVE';
-                covEl.className = 'result-card-value approved';
-                covNote.innerText = 'Incident within coverage window';
-            } else {
-                covEl.innerText = '—';
-                covEl.className = 'result-card-value';
-                covNote.innerText = '';
-            }
-
-            // Payout (card + breakdown) from the server's payout view
-            renderPayout(payout);
-
-            // Human approval
-            const appEl = document.getElementById('rApproval');
-            const appNote = document.getElementById('rApprovalNote');
-            if (state.requires_human_approval) {
-                appEl.innerText = 'REQUIRED';
-                appEl.className = 'result-card-value escalated';
-                appNote.innerText = state.deterministic_settlement?.approved_payout >= 150 ? 'High-value threshold ≥$150' : 'Exception flag triggered';
-            } else {
-                appEl.innerText = 'OPTIONAL';
-                appEl.className = 'result-card-value approved';
-                appNote.innerText = 'Below human threshold';
-            }
-
-            // ---- Investigation Timeline ----
-            const timeline = document.getElementById('stepperTimeline');
-            timeline.innerHTML = '';
-
-            state.steps_history.forEach(step => {
-                const item = document.createElement('div');
-                item.className = 'step-item';
-                item.innerHTML = `
-                    <span class="step-pill phase-${step.phase}">${step.phase} ${step.step_num}</span>
-                    <div class="step-body">
-                        <div class="step-desc">${step.description}</div>
-                        ${step.replan_reason ? `<div style="color: var(--status-amber); font-size: 0.72rem; font-weight: 600; margin-bottom: 0.2rem;">↻ Replan: ${step.replan_reason}</div>` : ''}
-                        <div class="step-reasoning">${step.reasoning || ''}</div>
-                        ${step.tool_called ? `<div class="step-code">Tool: ${step.tool_called}</div>` : ''}
-                    </div>
-                `;
-                timeline.appendChild(item);
-            });
-
-            // ---- Evidence List (only with this claim's own documents for line lookups) ----
-            renderEvidenceList(state.evidence, currentDocsScenario === currentScenario ? currentDocs : null);
-
-            // ---- Human review: outcome and only the decisions the server would accept ----
-            renderReviewPanel({ status: state.status, payout, allowed: allowedDecisions,
-                                requiresHuman: state.requires_human_approval });
-
-            // ---- Dual-Gate Verifier ----
-            const verifierBox = document.getElementById('verifierCard');
-            verifierBox.style.display = 'block';
-            const rep = state.verifier_report;
-
-            if (rep && rep.is_approved_by_verifier) {
-                verifierBox.className = 'verifier-box';
-                document.getElementById('verifierBadge').className = 'v-badge pass';
-                document.getElementById('verifierBadge').innerText = 'PASS';
-                document.getElementById('gate1Status').innerHTML = '<span style="color: var(--status-green);">✔ Evidence Substantiated</span>';
-                document.getElementById('gate2Status').innerHTML = '<span style="color: var(--status-green);">✔ Rules & Math Confirmed</span>';
-                document.getElementById('discrepancyBox').style.display = 'none';
-            } else {
-                verifierBox.className = 'verifier-box rejected';
-                document.getElementById('verifierBadge').className = 'v-badge fail';
-                document.getElementById('verifierBadge').innerText = 'REJECTED';
-                
-                const g1 = rep ? rep.gate_1_evidence_substantiated : false;
-                const g2 = rep ? (rep.gate_2_deterministic_rules_passed && rep.gate_2_arithmetic_matches) : false;
-                
-                document.getElementById('gate1Status').innerHTML = g1 
-                    ? '<span style="color: var(--status-green);">✔ Substantiated</span>' 
-                    : '<span style="color: var(--status-red);">✖ Failed</span>';
-                document.getElementById('gate2Status').innerHTML = g2 
-                    ? '<span style="color: var(--status-green);">✔ Passed</span>' 
-                    : '<span style="color: var(--status-red);">✖ Failed</span>';
-                    
-                const discBox = document.getElementById('discrepancyBox');
-                discBox.style.display = 'block';
-                const discrepancies = rep ? rep.discrepancies : state.conflicts;
-                discBox.innerHTML = `<strong>Discrepancies Flagged:</strong><br>${discrepancies.join('<br>')}`;
-            }
-
-            // ---- Technical Console (Blackboard & Monitoring) ----
-            if (blackboard) renderBlackboard(blackboard);
-            if (monitoring) renderMonitoring(monitoring);
-        }
-
-        // <console-helpers> Pure display helpers (no DOM); tests/test_dashboard_console.py runs them in Node.
-        // Redaction affects the console display only; the underlying investigation data is unchanged.
-        const CONSOLE_REDACT_KEYS = /^(claimant_name|claimant_id|customer|customer_name|client|client_name|email|phone|address|payment_method|card_number)$/i;
-        const CONSOLE_REDACT_LABELS = /\b(Customer|Client|Claimant|Payment Method|Card|Email|Phone|Address)(\s*:\s*)[^\n"\\]+/gi;
-
-        function redactForConsole(value) {
-            if (Array.isArray(value)) return value.map(redactForConsole);
-            if (value !== null && typeof value === 'object') {
-                const out = {};
-                for (const [k, v] of Object.entries(value)) {
-                    out[k] = CONSOLE_REDACT_KEYS.test(k) ? '[redacted in console]' : redactForConsole(v);
-                }
-                return out;
-            }
-            if (typeof value === 'string') return value.replace(CONSOLE_REDACT_LABELS, '$1$2[redacted]');
-            return value;
-        }
-
-        // {kind, summary, text, open}: objects/lists as indented JSON behind a summary line
-        function consoleValueParts(value) {
-            const shown = redactForConsole(value);
-            if (shown !== null && typeof shown === 'object') {
-                const compact = JSON.stringify(shown);
-                const n = Array.isArray(shown) ? shown.length : Object.keys(shown).length;
-                const unit = Array.isArray(shown) ? (n === 1 ? 'item' : 'items') : (n === 1 ? 'key' : 'keys');
-                const preview = compact.length > 90 ? compact.slice(0, 90) + '…' : compact;
-                return { kind: 'json', summary: `${Array.isArray(shown) ? 'list' : 'object'} · ${n} ${unit} — ${preview}`,
-                         text: JSON.stringify(shown, null, 2), open: compact.length <= 120 };
-            }
-            return { kind: 'text', summary: null, text: shown === null || shown === undefined ? 'null' : String(shown), open: true };
-        }
-
-        // Badge labels from the last run's actual report (tool_backend, forensics_mode, validated CrewAI report)
-        function consoleBadgeText(report, engine) {
-            if (!report) {
-                const legacy = engine === 'legacy';
-                return { mcp: legacy ? 'MCP: in-process (original loop)' : 'MCP: no run yet',
-                         crew: legacy ? 'CrewAI: not used (original loop)' : 'CrewAI: no run yet', crewTitle: '' };
-            }
-            const transports = { local: 'MCP: not used (local tools)', mcp_stdio: 'MCP: stdio transport',
-                                 mcp_http: 'MCP: streamable HTTP transport' };
-            const mcp = transports[report.tool_backend] || `MCP: ${report.tool_backend}`;
-            if (!report.forensics_mode || report.forensics_mode === 'none') return { mcp, crew: 'CrewAI: not used', crewTitle: '' };
-            const llm = report.forensics ? report.forensics.llm_review : null;
-            let crew;
-            if (!report.a2a_call || !report.a2a_call.ok || !report.forensics) crew = 'CrewAI via A2A: failed';
-            else if (!llm || llm.status === 'LLM_NOT_CONFIGURED') crew = 'CrewAI Flow via A2A (no LLM)';
-            else if (llm.status !== 'COMPLETED') crew = `CrewAI via A2A: LLM failed (${llm.status})`;
-            else crew = 'CrewAI Crew + LLM via A2A';
-            const crewTitle = llm ? `${llm.llm_provider || ''} ${llm.llm_model || ''}`.trim() : '';
-            return { mcp, crew, crewTitle };
-        }
-        // </console-helpers>
-
-        function renderConsoleBadges(report, engine) {
-            const b = consoleBadgeText(report, engine);
-            document.getElementById('mcpBadge').textContent = b.mcp;
-            const crew = document.getElementById('crewBadge');
-            crew.textContent = b.crew;
-            crew.title = b.crewTitle;
-        }
-
-        function renderBlackboard(bb) {
-            if (!bb) return;
-            const factCount = bb.fact_count || Object.keys(bb.facts || {}).length || 0;
-            document.getElementById('metricFacts').innerText = factCount;
-            document.getElementById('factCountBadge').innerText = `${factCount} Facts`;
-
-            const factsContainer = document.getElementById('blackboardFactsContainer');
-            factsContainer.innerHTML = '';
-
-            const facts = bb.facts || {};
-            const factKeys = Object.keys(facts);
-            if (factKeys.length === 0) {
-                factsContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No facts in working memory.</div>`;
-            } else {
-                // textContent only: values can contain document text, which must never become markup
-                factKeys.forEach(k => {
-                    const f = facts[k];
-                    const d = document.createElement('div');
-                    d.className = 'bb-fact';
-                    const head = document.createElement('div');
-                    head.className = 'bb-fact-head';
-                    const key = document.createElement('span');
-                    key.className = 'bb-fact-key';
-                    key.textContent = k;
-                    const source = document.createElement('span');
-                    source.className = 'bb-fact-source';
-                    source.textContent = f.source_agent || 'Investigator';
-                    head.append(key, source);
-                    d.appendChild(head);
-
-                    const parts = consoleValueParts(f.value);
-                    const pre = document.createElement('pre');
-                    pre.className = 'bb-fact-value';
-                    pre.textContent = parts.text;
-                    if (parts.kind === 'json') {
-                        const details = document.createElement('details');
-                        details.open = parts.open;
-                        const summary = document.createElement('summary');
-                        summary.textContent = parts.summary;
-                        details.append(summary, pre);
-                        d.appendChild(details);
-                    } else {
-                        d.appendChild(pre);
-                    }
-                    factsContainer.appendChild(d);
-                });
-            }
-
-            // A2A Messages
-            const a2aContainer = document.getElementById('a2aMessagesContainer');
-            a2aContainer.innerHTML = '';
-            const msgs = bb.messages || [];
-            document.getElementById('a2aCountBadge').innerText = `${msgs.length} Messages`;
-
-            if (msgs.length === 0) {
-                a2aContainer.innerHTML = `<div style="color: var(--text-secondary); text-align: center; padding: 1rem;">No agent messages exchanged yet.</div>`;
-            } else {
-                msgs.forEach(m => {
-                    const d = document.createElement('div');
-                    d.className = 'bb-msg';
-                    const head = document.createElement('div');
-                    head.className = 'bb-msg-head';
-                    const route = document.createElement('span');
-                    route.style.cssText = 'font-weight: 700; color: #fff; overflow-wrap: anywhere; min-width: 0;';
-                    route.textContent = `${m.sender} ➔ ${m.receiver}`;
-                    const intent = document.createElement('span');
-                    intent.style.cssText = 'color: var(--status-indigo); font-weight: 700;';
-                    intent.textContent = `[${m.intent}]`;
-                    head.append(route, intent);
-                    const payload = document.createElement('div');
-                    payload.className = 'bb-msg-payload';
-                    payload.textContent = JSON.stringify(redactForConsole(m.payload));
-                    d.append(head, payload);
-                    a2aContainer.appendChild(d);
-                });
-                a2aContainer.scrollTop = a2aContainer.scrollHeight;
-            }
-        }
-
-        function renderMonitoring(mon) {
-            if (!mon) return;
-            // Show a dash when latency was not measured, never a placeholder number
-            document.getElementById('metricLatency').innerText =
-                typeof mon.avg_step_latency_ms === 'number' ? `${mon.avg_step_latency_ms.toFixed(1)} ms` : '—';
-            document.getElementById('metricTools').innerText = mon.tools_called || 0;
-            document.getElementById('metricReplans').innerText = mon.replans_triggered || 0;
-        }
-
-        function updateStatusPill(status) {
-            const el = document.getElementById('systemClaimStatus');
-            el.innerHTML = `<span class="status-pill status-${status}">${status.replace(/_/g, ' ')}</span>`;
-        }
-
-        // Shows what is actually running (from /api/runtime-status), not a fixed label
-        // What the CrewAI service actually did, from the validated report (never from "a reply arrived")
-        function crewaiStatusText(adkReport) {
-            if (!adkReport.a2a_call || !adkReport.a2a_call.ok || !adkReport.forensics) return 'CrewAI via A2A: FAILED (no valid report)';
-            const llm = adkReport.forensics.llm_review;
-            if (!llm || llm.status === 'LLM_NOT_CONFIGURED') return 'CrewAI: deterministic Flow only (LLM not configured)';
-            if (llm.status !== 'COMPLETED') return `CrewAI Flow ok · LLM stage FAILED (${llm.status}${llm.error_category ? ': ' + llm.error_category : ''})`;
-            return `CrewAI Crew + LLM (${llm.llm_model}): ${llm.findings.length} finding(s), ${llm.llm_calls_succeeded} model call(s)`;
-        }
-
-        function renderRuntimeStatus(runtime, adkReport) {
-            const el = document.getElementById('metaEngine');
-            if (adkReport) {
-                el.innerText = `Google ADK ${adkReport.pipeline_backend} · ${adkReport.planner} · tools: ${adkReport.tool_backend}`
-                    + (adkReport.forensics_mode !== 'none' ? ` · ${crewaiStatusText(adkReport)}` : '')
-                    + (adkReport.rag
-                        ? ` · RAG: ${adkReport.rag.error ? 'FAILED' : Object.keys(adkReport.policy_citations || {}).length + ' policy citations'}` : '');
-                // Hover shows each citation's source file and section
-                el.title = Object.entries((adkReport && adkReport.policy_citations) || {})
-                    .map(([topic, c]) => `${topic}: ${c.source_file} §${c.section} (score ${c.score.toFixed(2)})`).join('\n');
-                return;
-            }
-            if (!runtime) return;
-            el.innerText = runtime.planner_mode === 'gemini'
-                ? `Gemini (${runtime.gemini.model})`
-                : 'Deterministic fallback (no Gemini)';
-        }
-
-        async function refreshRuntimeStatus() {
-            try {
-                const res = await fetch('/api/runtime-status');
-                if (res.ok) renderRuntimeStatus(await res.json());
-            } catch (err) {
-                console.error("Runtime status unavailable:", err);
-            }
-        }
-
-        // The adjudication token (if the server requires one) is typed in by the reviewer
-        // and kept only for this browser tab. It is never embedded in the page.
-        function adjudicationHeaders() {
-            const headers = { 'Content-Type': 'application/json' };
-            let token = null;
-            try { token = sessionStorage.getItem('claimsleuthAdjudicationToken'); } catch (e) {}
-            if (token) headers['Authorization'] = `Bearer ${token}`;
-            return headers;
-        }
-
-        // The server decides; the panel only reflects its answer (a hidden button changes nothing server-side).
-        async function adjudicate(decision, isRetry = false) {
-            const notes = document.getElementById('humanNotesInput').value;
-            const claimId = currentClaimId;
-            const mySeq = investigationSeq;
-            const buttons = DECISION_ORDER.map(d => document.getElementById(`btnDecision${d}`));
-            buttons.forEach(b => { b.disabled = true; });
-            try {
-                const res = await fetch(`/api/adjudicate/${claimId}`, {
-                    method: 'POST',
-                    headers: adjudicationHeaders(),
-                    body: JSON.stringify({ decision, notes })
-                });
-                const data = await res.json();
-                if (mySeq !== investigationSeq || claimId !== currentClaimId) return;   // the user moved on
-                if ((res.status === 401 || res.status === 403) && !isRetry) {
-                    const token = prompt('This server requires an adjudication token. Enter it to continue:');
-                    if (token) {
-                        try { sessionStorage.setItem('claimsleuthAdjudicationToken', token); } catch (e) {}
-                        return adjudicate(decision, true);
-                    }
-                }
-                if (!res.ok) {
-                    const detail = typeof data.detail === 'string' ? data.detail : JSON.stringify(data.detail);
-                    alert(`Decision not recorded (HTTP ${res.status}): ${detail}`);
-                    return;
-                }
-                updateStatusPill(data.status);
-                renderPayout(data.payout);
-                renderReviewPanel({ status: data.status, payout: data.payout, allowed: data.allowed_decisions,
-                                    requiresHuman: activeInvestigationState ? activeInvestigationState.requires_human_approval : true });
-
-                if (evidenceEngine && activeInvestigationState) {
-                    activeInvestigationState.status = data.status;
-                    evidenceEngine.updateRealDataState(activeInvestigationState);
-                }
-
-                alert(`Human Adjudication Recorded: Claim is now ${data.status}`);
-            } catch (err) {
-                console.error("Adjudication failed:", err);
-            } finally {
-                if (mySeq === investigationSeq) buttons.forEach(b => { b.disabled = false; });
-            }
-        }
-
-        // Initialize application & 3D Evidence Core
-        window.addEventListener('DOMContentLoaded', () => {
-            evidenceEngine = new EvidenceCoreEngine('evidenceCoreCanvas');
-            loadScenarios();
-            refreshRuntimeStatus();
-
-            // Cinematic Opening Sequence Dissolve
-            setTimeout(() => {
-                const intro = document.getElementById('cinematicIntro');
-                if (intro) {
-                    intro.classList.add('dissolve');
-                    setTimeout(() => intro.remove(), 700);
-                }
-            }, 1000);
-        });
-    </script>
+    <div id="report"></div>
+    <div class="card"><h3 style="margin-top:0">Documents</h3><div id="docs"></div><div id="doc-view" style="margin-top:10px"></div></div>
+  </section>
+
+  <section class="page" id="page-evaluation">
+    <h2>Evaluation</h2>
+    <div id="evaluation"></div>
+  </section>
+</main>
+</div>
+
+<script>
+const S = { token: null, claimId: null, runId: null, claims: [], status: null };
+const $ = (id) => document.getElementById(id);
+const esc = (v) => String(v ?? "").replace(/[&<>"']/g, (c) => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;"}[c]));
+try { S.token = sessionStorage.getItem("cs_token"); } catch (e) { S.token = null; }
+
+async function api(path, options = {}) {
+  const headers = Object.assign({}, options.headers || {}, { Authorization: `Bearer ${S.token}` });
+  const res = await fetch(path, Object.assign({}, options, { headers }));
+  if (res.status === 401) { showLogin("The token was not accepted."); throw new Error("unauthorised"); }
+  return res;
+}
+async function apiJson(path, options) {
+  const res = await api(path, options);
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.detail ? (typeof body.detail === "string" ? body.detail : JSON.stringify(body.detail)) : `HTTP ${res.status}`);
+  return body;
+}
+function notice(el, text, kind = "error") { $(el).innerHTML = text ? `<div class="notice ${kind}">${esc(text)}</div>` : ""; }
+
+function showLogin(message) {
+  $("app").hidden = true; $("login").hidden = false;
+  notice("login-error", message || "");
+}
+$("login-btn").onclick = async () => {
+  S.token = $("token").value.trim();
+  try { sessionStorage.setItem("cs_token", S.token); } catch (e) {}
+  await start();
+};
+$("token").addEventListener("keydown", (e) => { if (e.key === "Enter") $("login-btn").click(); });
+
+function go(page) {
+  document.querySelectorAll("section.page").forEach((s) => s.classList.toggle("active", s.id === `page-${page}`));
+  document.querySelectorAll("nav button").forEach((b) => b.classList.toggle("active", b.dataset.page === page));
+  if (page === "demo") loadClaims();
+  if (page === "evaluation") loadEvaluation();
+}
+document.querySelectorAll("nav button").forEach((b) => (b.onclick = () => go(b.dataset.page)));
+
+async function start() {
+  if (!S.token) return showLogin("");
+  try {
+    S.status = await apiJson("/api/status");
+  } catch (e) {
+    if (e.message !== "unauthorised") { $("login").hidden = true; $("app").hidden = false; notice("global-error", e.message); }
+    return;
+  }
+  $("login").hidden = true; $("app").hidden = false; notice("global-error", "");
+  $("meta").textContent = `model ${S.status.model}`;
+  $("f-policy").innerHTML = `<option value="">Uploaded policy document</option>` +
+    S.status.policies.map((p) => `<option value="${esc(p.id)}">${esc(p.name)} (${esc(p.id)})</option>`).join("");
+  go("demo");
+}
+
+async function loadClaims() {
+  try { S.claims = await apiJson("/api/claims"); } catch (e) { return notice("global-error", e.message); }
+  $("claims").innerHTML = S.claims.map((c) => `
+    <div class="card claim-card">
+      <div class="row" style="justify-content:space-between"><h3>${esc(c.device)}</h3><span class="badge">${esc(c.source)}</span></div>
+      <p>${esc(c.id)} · ${esc(c.claimant)} · incident ${esc(c.incident_date)}</p>
+      <p style="margin:8px 0">${esc(c.statement)}</p>
+      <div class="row">${c.decision ? `<span class="badge ${esc(c.decision)}">${esc(c.decision)}</span>` : `<span class="badge">not investigated</span>`}
+        ${c.review ? `<span class="badge">reviewed: ${esc(c.review.action)}</span>` : ""}
+        <button class="secondary" data-open="${esc(c.id)}">Open</button></div>
+    </div>`).join("") || `<p class="muted">No claims.</p>`;
+  document.querySelectorAll("[data-open]").forEach((b) => (b.onclick = () => openClaim(b.dataset.open)));
+}
+
+$("new-form").onsubmit = async (e) => {
+  e.preventDefault();
+  const form = new FormData(e.target);
+  if (!$("f-policyfile").files.length) form.delete("policy_file");
+  notice("new-msg", "");
+  try {
+    const { claim_id } = await apiJson("/api/claims", { method: "POST", body: form });
+    e.target.reset();
+    await openClaim(claim_id);
+  } catch (err) { notice("new-msg", err.message); }
+};
+
+async function openClaim(id) {
+  S.claimId = id; $("nav-claim").hidden = false; go("claim");
+  $("timeline").innerHTML = `<span class="muted">No run in this session yet.</span>`; $("run-status").textContent = "";
+  $("doc-view").innerHTML = ""; $("report").innerHTML = "";
+  let c;
+  try { c = await apiJson(`/api/claims/${encodeURIComponent(id)}`); } catch (e) { return notice("global-error", e.message); }
+  $("claim-head").innerHTML = `<h2>${esc(c.device)} <span class="muted small">${esc(c.id)}</span></h2>
+    <p class="lead">${esc(c.claimant)} · policy ${esc(c.policy_id || "uploaded")} · purchase ${esc(c.purchase_date || "from documents")} · incident ${esc(c.incident_date)}<br>${esc(c.statement)}</p>`;
+  $("docs").innerHTML = `<table><tr><th>Document</th><th>Kind</th><th>Pages</th><th>Text</th></tr>` +
+    c.documents.map((d) => `<tr><td><a data-doc="${esc(d.id)}" href="#">${esc(d.filename)}</a></td><td>${esc(d.kind)}</td><td class="num">${d.pages}</td><td>${d.has_text ? "yes" : "no text layer"}</td></tr>`).join("") + `</table>`;
+  document.querySelectorAll("[data-doc]").forEach((a) => (a.onclick = (e) => { e.preventDefault(); showDoc(a.dataset.doc); }));
+  await loadReport();
+}
+
+async function showDoc(docId, line) {
+  try {
+    const d = await apiJson(`/api/documents/${docId.split("/").map(encodeURIComponent).join("/")}`);
+    $("doc-view").innerHTML = `<div class="muted small">${esc(docId)}</div><div class="doc">` +
+      d.lines.map((l) => `<div id="ln-${l.n}" class="${l.n === line ? "hl" : ""}"><span class="ln">${l.n}</span>${esc(l.text)}</div>`).join("") + `</div>`;
+    if (line && $(`ln-${line}`)) $(`ln-${line}`).scrollIntoView({ block: "center" });
+  } catch (e) { $("doc-view").innerHTML = `<div class="notice error">${esc(e.message)}</div>`; }
+}
+function quoteHtml(q) {
+  const policy = q.doc_id.startsWith("policy:");
+  const link = policy ? esc(q.doc_id) : `<a data-q="${esc(q.doc_id)}" data-line="${q.line}">${esc(q.doc_id.split("/").pop())}</a>`;
+  return `<span class="quote">${link} line ${q.line}: “${esc(q.text)}”</span>`;
+}
+
+$("run-btn").onclick = async () => {
+  $("run-btn").disabled = true; $("timeline").innerHTML = ""; $("run-status").textContent = "starting…";
+  try {
+    const { run_id } = await apiJson(`/api/claims/${encodeURIComponent(S.claimId)}/investigate?pattern=${$("pattern").value}&prompt_style=${$("style").value}`, { method: "POST" });
+    S.runId = run_id; $("run-status").textContent = `run ${run_id} running`;
+    await followRun(run_id);
+  } catch (e) { $("run-status").textContent = ""; addLine({ agent: "system", type: "error", text: e.message }); }
+  $("run-btn").disabled = false;
+};
+function addLine(ev) {
+  const div = document.createElement("div");
+  const t = new Date((ev.ts || Date.now() / 1000) * 1000).toLocaleTimeString();
+  div.innerHTML = `<span class="muted">${t}</span> <span class="agent">${esc(ev.agent)}</span> <span class="${ev.type === "error" ? "err" : "type"}">${esc(ev.type)}</span> ${esc(ev.tool || "")} <span class="muted">${esc(ev.text || "")}</span>`;
+  $("timeline").appendChild(div); $("timeline").scrollTop = $("timeline").scrollHeight;
+}
+async function followRun(runId) {
+  // EventSource cannot send the token header, so the stream is read with fetch.
+  const res = await api(`/api/runs/${runId}/events`);
+  const reader = res.body.getReader(); const decoder = new TextDecoder(); let buffer = "";
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+    let cut;
+    while ((cut = buffer.indexOf("\n\n")) >= 0) {
+      const block = buffer.slice(0, cut); buffer = buffer.slice(cut + 2);
+      const isDone = block.startsWith("event: done");
+      const data = JSON.parse(block.slice(block.indexOf("data: ") + 6));
+      if (isDone) {
+        $("run-status").textContent = `run ${runId} ${data.status} in ${data.seconds ?? "?"} s` + (data.error ? `: ${data.error}` : "");
+        if (data.status !== "completed") addLine({ agent: "system", type: "error", text: data.error || "run failed" });
+        await loadReport(); return;
+      }
+      addLine(data);
+    }
+  }
+}
+
+async function loadReport() {
+  let r;
+  try { r = await apiJson(`/api/claims/${encodeURIComponent(S.claimId)}/report`); }
+  catch (e) { $("report").innerHTML = `<div class="card muted">No report yet. Run an investigation.</div>`; return; }
+  const rep = r.report, run = r.run || {};
+  const payout = rep.payout ? `<h3>Payout: ${esc(rep.payout.amount)} ${esc(rep.payout.currency)}</h3><table>${Object.entries(rep.payout.breakdown).map(([k, v]) => `<tr><td>${esc(k.replaceAll("_", " "))}</td><td class="num">${esc(v)}</td></tr>`).join("")}</table>` : `<h3>No payout</h3>`;
+  const cov = rep.coverage ? `<h3>Coverage</h3><p>Covered: <b>${rep.coverage.covered}</b> · within window: ${rep.coverage.within_window} (${rep.coverage.days_since_purchase} days since purchase) · exclusion: ${esc(rep.coverage.exclusion || "none")}</p><p>${quoteHtml(rep.coverage.clause)}</p>` : "";
+  const fraud = rep.fraud ? `<h3>Fraud checks (CrewAI): ${rep.fraud.flagged ? `<span class="badge reject">flagged</span>` : `<span class="badge approve">not flagged</span>`}</h3>` +
+    (rep.fraud.findings.length ? `<table><tr><th>Severity</th><th>Finding</th><th>Quotes</th></tr>${rep.fraud.findings.map((f) => `<tr><td><span class="badge ${f.severity === "high" ? "reject" : f.severity === "medium" ? "full_review" : ""}">${esc(f.severity)}</span></td><td><b>${esc(f.kind)}</b><br>${esc(f.detail)}</td><td>${f.quotes.map(quoteHtml).join("<br>")}</td></tr>`).join("")}</table>` : `<p class="muted">No findings.</p>`) : `<h3>Fraud checks</h3><p class="muted">No result from the fraud crew.</p>`;
+  const hits = rep.guardrail_hits.length ? `<h3>Guardrail hits</h3><table><tr><th>Kind</th><th>Where</th><th>Detail</th></tr>${rep.guardrail_hits.map((h) => `<tr><td>${esc(h.kind)}</td><td class="quote">${esc(h.where)}</td><td>${esc(h.detail)}</td></tr>`).join("")}</table>` : `<h3>Guardrail hits</h3><p class="muted">None.</p>`;
+  const reviewed = r.review ? `<div class="notice ok">Reviewed: ${esc(r.review.action)} by ${esc(r.review.reviewer)} at ${esc(r.review.created_at)}${r.review.note ? ` · “${esc(r.review.note)}”` : ""}</div>` : "";
+  $("report").innerHTML = `<div class="card">
+    <div class="row" style="justify-content:space-between"><h2>Report</h2><span class="muted small">run ${esc(r.run_id)} · ${esc(rep.pattern)} / ${esc(rep.prompt_style)} · ${esc(run.seconds)} s · ${esc(run.prompt_tokens)} + ${esc(run.completion_tokens)} tokens${run.cost_usd != null ? ` · $${Number(run.cost_usd).toFixed(4)}` : ""}</span></div>
+    <div class="row" style="margin:8px 0"><span class="badge ${esc(rep.decision)}">${esc(rep.decision)}</span><span class="badge ${esc(rep.review)}">${rep.review === "full_review" ? "full review" : "one-click review"}</span></div>
+    <h3>Reasons</h3><ul style="padding-left:20px">${rep.reasons.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+    ${payout}${cov}${fraud}
+    <h3>Evidence</h3>${rep.evidence.length ? rep.evidence.map((q) => `<div>${quoteHtml(q)}</div>`).join("") : `<p class="muted">No quotes.</p>`}
+    ${hits}
+    <h3>Agent heat map</h3><div id="heatmap" class="muted small">loading…</div>
+    <h3>Trace</h3><div id="trace" class="muted small"><a href="#" id="trace-btn">Show the spans of this run</a></div>
+    <h3>Human review</h3>${reviewed}<div id="review-msg"></div>
+    <label for="review-note">Note${rep.review === "full_review" ? " (required for a full review)" : " (optional)"}</label>
+    <textarea id="review-note" rows="2"></textarea>
+    <div class="row" style="margin-top:10px"><button class="primary" id="approve-btn">Approve</button><button class="secondary" id="reject-btn">Reject</button></div>
+  </div>`;
+  document.querySelectorAll("[data-q]").forEach((a) => (a.onclick = () => showDoc(a.dataset.q, Number(a.dataset.line))));
+  $("approve-btn").onclick = () => sendReview("approve"); $("reject-btn").onclick = () => sendReview("reject");
+  $("trace-btn").onclick = (e) => { e.preventDefault(); loadTrace(r.run_id); };
+  try {
+    const img = await api(r.heatmap);
+    $("heatmap").innerHTML = img.ok ? `<img class="chart" alt="Per-agent heat map for run ${esc(r.run_id)}" src="${URL.createObjectURL(await img.blob())}">` : "No metrics for this run.";
+  } catch (e) { $("heatmap").textContent = "Heat map unavailable."; }
+}
+async function loadTrace(runId) {
+  try {
+    const t = await apiJson(`/api/runs/${runId}/trace`);
+    const spans = t.spans.sort((a, b) => a.start_ns - b.start_ns);
+    $("trace").innerHTML = `<p>Trace ${esc(t.trace_id)}: ${spans.length} spans</p><table><tr><th>Span</th><th>Service</th><th>ms</th></tr>` +
+      spans.map((s) => `<tr><td class="quote">${esc(s.name)}</td><td>${esc((s.attributes || {}).service || "claimsleuth-app")}</td><td class="num">${esc(s.duration_ms)}</td></tr>`).join("") + `</table>`;
+  } catch (e) { $("trace").textContent = e.message; }
+}
+async function sendReview(action) {
+  try {
+    await apiJson(`/api/claims/${encodeURIComponent(S.claimId)}/review`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action, note: $("review-note").value }) });
+    await loadReport();
+  } catch (e) { notice("review-msg", e.message); }
+}
+
+function markdown(md) {
+  const lines = md.split("\n"); let html = "", i = 0;
+  const inline = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<b>$1</b>").replace(/`(.+?)`/g, "<code>$1</code>");
+  while (i < lines.length) {
+    const l = lines[i];
+    if (/^#{1,3} /.test(l)) { const n = l.match(/^#+/)[0].length; html += `<h${n + 1}>${inline(l.slice(n + 1))}</h${n + 1}>`; i++; }
+    else if (l.startsWith("|")) {
+      const rows = []; while (i < lines.length && lines[i].startsWith("|")) rows.push(lines[i++]);
+      const cells = (r) => r.split("|").slice(1, -1).map((c) => c.trim());
+      html += `<table><tr>${cells(rows[0]).map((c) => `<th>${inline(c)}</th>`).join("")}</tr>` + rows.slice(2).map((r) => `<tr>${cells(r).map((c) => `<td>${inline(c)}</td>`).join("")}</tr>`).join("") + `</table>`;
+    } else if (l.startsWith("- ")) { html += "<ul>"; while (i < lines.length && lines[i].startsWith("- ")) html += `<li>${inline(lines[i++].slice(2))}</li>`; html += "</ul>"; }
+    else if (l.startsWith("![")) { i++; }
+    else if (l.trim()) { html += `<p>${inline(l)}</p>`; i++; } else i++;
+  }
+  return html;
+}
+async function loadEvaluation() {
+  let e;
+  try { e = await apiJson("/api/evaluation"); } catch (err) { return notice("global-error", err.message); }
+  if (!e.summary) { $("evaluation").innerHTML = `<p class="lead">No evaluation has been run yet. Run <code>python eval/run_eval.py</code>, then <code>python eval/charts.py</code>.</p>`; return; }
+  $("evaluation").innerHTML = `<div class="card md">${markdown(e.summary)}</div>` + e.charts.map((c) => `<div class="card"><h3 style="margin-top:0">${esc(c.replace(".png", "").replaceAll("_", " "))}</h3><div data-chart="${esc(c)}" class="muted small">loading…</div></div>`).join("");
+  for (const el of document.querySelectorAll("[data-chart]")) {
+    const res = await api(`/api/evaluation/charts/${encodeURIComponent(el.dataset.chart)}`);
+    el.innerHTML = res.ok ? `<img class="chart" alt="${esc(el.dataset.chart)}" src="${URL.createObjectURL(await res.blob())}">` : "missing";
+  }
+}
+
+start();
+</script>
 </body>
 </html>

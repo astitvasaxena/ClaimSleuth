@@ -31,6 +31,11 @@ def model() -> Gemini:
         http_status_codes=[429, 500, 502, 503, 504]))
 
 
+def content_config() -> types.GenerateContentConfig:
+    """Per-request settings for every ADK agent's model calls: a timeout, so a stalled call fails visibly."""
+    return types.GenerateContentConfig(http_options=types.HttpOptions(timeout=config.MODEL_CALL_TIMEOUT_S * 1000))
+
+
 def mcp_tools(*names: str) -> McpToolset:
     """MCP tools from the app's /mcp endpoint, limited to the names an agent is allowed to use. Each request carries
     the shared secret and the current W3C traceparent, so the MCP server's spans join the run's trace."""
