@@ -18,8 +18,9 @@ def _load_dotenv(path: Path) -> None:
 
 _load_dotenv(BASE_DIR / ".env")
 
-# Model. One provider (Gemini); the name is pinned here and can be overridden with GEMINI_MODEL.
-GEMINI_MODEL = os.environ.get("GEMINI_MODEL") or "gemini-3.5-flash"
+# Model. One provider (Gemini) and one pinned model for every agent, the crew, the live checks and the
+# evaluation. It is deliberately not read from the environment, so runs can never mix models.
+GEMINI_MODEL = "gemini-3.5-flash-lite"
 GOOGLE_API_KEY = os.environ.get("GOOGLE_API_KEY", "")
 
 # Secrets (empty means "not configured").
@@ -43,7 +44,11 @@ MODEL_RETRY_ATTEMPTS = 5          # retries on 429/5xx from the model API (Gemin
 
 # Model prices in USD per million tokens, from the provider's price list, with the date they were read.
 # Cost is reported only for models listed here; for any other model it is "not measured".
-PRICES: dict[str, dict] = {}
+PRICES: dict[str, dict] = {
+    "gemini-3.5-flash-lite": {"input_per_million": 0.30, "output_per_million": 2.50,   # output includes thinking
+                              "tier": "paid, standard", "checked": "2026-10-30",
+                              "source": "https://ai.google.dev/gemini-api/docs/pricing"},
+}
 
 # Paths. DATA_DIR holds everything the app writes; override it in containers.
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data" / "runtime"))

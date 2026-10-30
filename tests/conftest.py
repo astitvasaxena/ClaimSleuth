@@ -12,3 +12,6 @@ os.environ["CLAIMSLEUTH_RAG_INDEX_DIR"] = tempfile.mkdtemp(prefix="claimsleuth_t
 
 
 
+
+# tests/crew needs crewai, which is installed only in .venv-crewai (run it there with unittest).
+collect_ignore_glob = ["crew/*"]

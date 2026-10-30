@@ -1,0 +1,12 @@
+OFFICIAL RETAIL INVOICE
+Store: Northgate Mobile #12
+Customer: Maya Chen
+Invoice Number: NM-30412
+Purchase Date: 2024-01-05
+
+Item Description: Google Pixel 8 128GB Obsidian
+Serial Number: SN-PX8-40211-A
+Total Paid: $699.00
+
+Warranty Enrolled: TechGuard Extended Smartphone Care
+Policy Number: POL-TECH-CARE-01

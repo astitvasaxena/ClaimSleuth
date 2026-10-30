@@ -287,6 +287,17 @@ def get_report(claim_id: str):
             "heatmap": f"/api/runs/{row['run_id']}/heatmap.png"}
 
 
+@app.get("/api/runs/{run_id}")
+def get_run(run_id: str):
+    with db.connect() as conn:
+        run = conn.execute("SELECT * FROM runs WHERE id = ?", (run_id,)).fetchone()
+        if run is None:
+            raise HTTPException(404, "unknown run")
+        agents = [dict(r) for r in conn.execute("SELECT * FROM agent_metrics WHERE run_id = ? ORDER BY agent", (run_id,))]
+        report = conn.execute("SELECT report_json FROM reports WHERE run_id = ?", (run_id,)).fetchone()
+    return {"run": dict(run), "agents": agents, "report": json.loads(report["report_json"]) if report else None}
+
+
 @app.get("/api/runs/{run_id}/heatmap.png")
 def run_heatmap(run_id: str):
     png = charts.run_heatmap(run_id)

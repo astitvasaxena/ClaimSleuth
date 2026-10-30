@@ -1,0 +1,9 @@
+ELECTRONICS OUTLET RECEIPT
+Store: MicroCenter Tech Hub
+Customer: Daniel Brooks
+Receipt ID: REC-60233-DB
+Purchase Date: 2024-01-15
+Product: OmniLaptop Ultra 14 i7 16GB 512GB
+Serial Number: OMNI-LT-603318
+Retail Price: $1299.99
+Policy: POL-LAPTOP-STD-02

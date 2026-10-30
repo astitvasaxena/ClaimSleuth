@@ -1,0 +1,203 @@
+"""
+The evaluation runner. It calls the ClaimSleuth API the way a client does, one run at a time, and appends one
+row per run to eval/results/runs.csv. It is resumable: runs already in the file are skipped.
+
+    python eval/run_eval.py --url http://127.0.0.1:8000 --experiment A     # 3 patterns x 2 prompt styles x 8 claims
+    python eval/run_eval.py --url http://127.0.0.1:8000 --experiment B     # best configuration of A x 40 variants
+    python eval/run_eval.py --dry-run                                       # print the plan; no requests
+
+Needs ADJUSTER_TOKEN (from .env). Every row must come from the pinned model (claimsleuth.config.GEMINI_MODEL);
+the runner refuses to continue if the server or an existing row uses another model.
+"""
+import argparse
+import csv
+import json
+import sys
+import time
+from pathlib import Path
+
+import httpx
+
+from claimsleuth import config
+from claimsleuth.db import PERSONAS, eval_claim_id
+
+RESULTS = Path(__file__).resolve().parent / "results"
+RUNS_CSV = RESULTS / "runs.csv"
+LABELS = json.loads((Path(__file__).resolve().parent / "claims" / "labels.json").read_text(encoding="utf-8"))
+PACKETS = sorted(LABELS)
+PATTERNS = ("sequential", "parallel", "hierarchical")
+STYLES = ("direct", "react")
+AGENTS = ("claim_manager", "evidence_agent", "policy_agent", "settlement_agent", "fraud_crew", "forensics", "history")
+COLUMNS = (["run_id", "experiment", "claim", "persona", "pattern", "prompt_style", "model", "target", "status", "error",
+            "expected", "decision", "correct", "fraud_flagged", "payout", "seconds", "rate_limit_wait_s",
+            "prompt_tokens", "completion_tokens", "cost_usd", "llm_calls", "tool_calls", "errors", "guardrail_hits",
+            "hits_injection", "hits_abuse", "finished_at"]
+           + [f"{a}_{m}" for a in AGENTS for m in ("seconds", "tokens")])
+BACKOFF_S = (60, 120, 240, 480, 900)
+
+
+def plan_a() -> list[dict]:
+    return [{"experiment": "A", "claim": p, "persona": "honest", "pattern": pat, "prompt_style": st}
+            for pat in PATTERNS for st in STYLES for p in PACKETS]
+
+
+def plan_b(best: tuple[str, str]) -> list[dict]:
+    return [{"experiment": "B", "claim": p, "persona": per, "pattern": best[0], "prompt_style": best[1]}
+            for p in PACKETS for per in PERSONAS]
+
+
+def key(row: dict) -> tuple:
+    return (row["experiment"], row["claim"], row["persona"], row["pattern"], row["prompt_style"])
+
+
+def read_rows() -> list[dict]:
+    if not RUNS_CSV.is_file():
+        return []
+    with RUNS_CSV.open(encoding="utf-8", newline="") as f:
+        return list(csv.DictReader(f))
+
+
+def append_row(row: dict) -> None:
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    new = not RUNS_CSV.is_file()
+    with RUNS_CSV.open("a", encoding="utf-8", newline="") as f:
+        writer = csv.DictWriter(f, fieldnames=COLUMNS)
+        if new:
+            writer.writeheader()
+        writer.writerow({c: row.get(c, "") for c in COLUMNS})
+
+
+def best_config(rows: list[dict]) -> tuple[str, str]:
+    """Highest accuracy in experiment A; ties go to the lower mean cost (then the lower mean time)."""
+    a = [r for r in rows if r["experiment"] == "A"]
+    if len(a) < len(plan_a()):
+        raise SystemExit(f"experiment A has {len(a)} of {len(plan_a())} runs; finish it before experiment B")
+    scores = []
+    for pat in PATTERNS:
+        for st in STYLES:
+            group = [r for r in a if r["pattern"] == pat and r["prompt_style"] == st]
+            accuracy = sum(r["correct"] == "True" for r in group) / len(group)
+            costs = [float(r["cost_usd"]) for r in group if r["cost_usd"]]
+            seconds = [float(r["seconds"]) for r in group if r["seconds"]]
+            scores.append((-accuracy, sum(costs) / len(costs) if costs else float("inf"),
+                           sum(seconds) / len(seconds) if seconds else float("inf"), pat, st))
+    _, _, _, pattern, style = min(scores)
+    return pattern, style
+
+
+def is_rate_limit(error: str) -> bool:
+    return any(s in (error or "") for s in ("429", "RESOURCE_EXHAUSTED", "ResourceExhausted"))
+
+
+def is_daily_quota(error: str) -> bool:
+    return "per day" in (error or "").lower() or "PerDay" in (error or "")
+
+
+class Client:
+
+    def __init__(self, url: str, token: str):
+        self.url = url.rstrip("/")
+        self.http = httpx.Client(base_url=self.url, headers={"Authorization": f"Bearer {token}"}, timeout=60)
+
+    def model(self) -> str:
+        response = self.http.get("/api/status")
+        response.raise_for_status()
+        return response.json()["model"]
+
+    def run(self, claim_id: str, pattern: str, style: str) -> dict:
+        response = self.http.post(f"/api/claims/{claim_id}/investigate", params={"pattern": pattern, "prompt_style": style})
+        response.raise_for_status()
+        run_id = response.json()["run_id"]
+        result = None
+        with self.http.stream("GET", f"/api/runs/{run_id}/events", timeout=httpx.Timeout(60, read=None)) as stream:
+            event = None
+            for line in stream.iter_lines():
+                if line.startswith("event: "):
+                    event = line[7:]
+                elif line.startswith("data: ") and event == "done":
+                    result = json.loads(line[6:])
+                    break
+        if result is None:
+            raise RuntimeError(f"run {run_id}: the event stream ended without a result")
+        details = self.http.get(f"/api/runs/{run_id}")
+        details.raise_for_status()
+        return {"result": result, **details.json()}
+
+
+def to_row(planned: dict, outcome: dict, waited: float, target: str) -> dict:
+    run, report, result = outcome["run"], outcome["report"], outcome["result"]
+    label = LABELS[planned["claim"]]
+    decision = report["decision"] if report else ""
+    flagged = bool(report and report.get("fraud") and report["fraud"]["flagged"])
+    payout = report["payout"]["amount"] if report and report.get("payout") else ""
+    correct = (run["status"] == "completed" and decision in label["accepted"]
+               and (flagged or not label["fraud_expected"])
+               and ("payout" not in label or payout == label["payout"]))
+    hits = report["guardrail_hits"] if report else []
+    agents = {a["agent"]: a for a in outcome["agents"]}
+    totals = {m: sum(a[m] for a in outcome["agents"]) for m in ("llm_calls", "tool_calls", "errors", "guardrail_hits")}
+    row = {**planned, "run_id": run["id"], "model": run["model"], "target": target, "status": run["status"],
+           "error": (run["error"] or "")[:300], "expected": "|".join(label["accepted"]), "decision": decision,
+           "correct": correct, "fraud_flagged": flagged, "payout": payout, "seconds": run["seconds"],
+           "rate_limit_wait_s": round(waited, 1), "prompt_tokens": run["prompt_tokens"],
+           "completion_tokens": run["completion_tokens"], "cost_usd": run["cost_usd"] if run["cost_usd"] is not None else "",
+           "hits_injection": sum(h["kind"] == "injection" for h in hits), "hits_abuse": sum(h["kind"] == "abuse" for h in hits),
+           "finished_at": time.strftime("%Y-%m-%dT%H:%M:%S"), **totals}
+    for name in AGENTS:
+        a = agents.get(name)
+        row[f"{name}_seconds"] = a["seconds"] if a else ""
+        row[f"{name}_tokens"] = (a["prompt_tokens"] + a["completion_tokens"]) if a else ""
+    return row
+
+
+def main() -> int:
+    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
+    parser.add_argument("--url", default=config.APP_URL)
+    parser.add_argument("--experiment", choices=("A", "B"), default="A")
+    parser.add_argument("--target", default="local docker compose",
+                        help="what the URL is, for the results: 'deployed <url>' or 'local docker compose'")
+    parser.add_argument("--max-runs", type=int, default=None, help="stop after this many new runs")
+    parser.add_argument("--dry-run", action="store_true")
+    args = parser.parse_args()
+
+    rows = read_rows()
+    models = {r["model"] for r in rows}
+    if models - {config.GEMINI_MODEL}:
+        sys.exit(f"runs.csv holds runs from {sorted(models)}; the pinned model is {config.GEMINI_MODEL}. Not mixing.")
+    planned = plan_a() if args.experiment == "A" else plan_b(best_config(rows))
+    done = {key(r) for r in rows}
+    todo = [p for p in planned if key(p) not in done]
+    print(f"experiment {args.experiment}: {len(planned)} runs planned, {len(planned) - len(todo)} done, {len(todo)} to go")
+    if args.dry_run:
+        for p in todo:
+            print(f"  {p['claim']} {p['persona']:9} {p['pattern']:12} {p['prompt_style']}")
+        return 0
+    if not config.ADJUSTER_TOKEN:
+        sys.exit("ADJUSTER_TOKEN is not set")
+    client = Client(args.url, config.ADJUSTER_TOKEN)
+    server_model = client.model()
+    if server_model != config.GEMINI_MODEL:
+        sys.exit(f"the server uses {server_model}; the pinned model is {config.GEMINI_MODEL}. Not mixing.")
+    for count, p in enumerate(todo[:args.max_runs] if args.max_runs else todo, start=1):
+        waited = 0.0
+        for attempt in range(len(BACKOFF_S) + 1):
+            outcome = client.run(eval_claim_id(p["claim"], p["persona"]), p["pattern"], p["prompt_style"])
+            error = outcome["run"]["error"] or ""
+            if outcome["run"]["status"] == "completed" or not is_rate_limit(error):
+                break
+            if is_daily_quota(error) or attempt == len(BACKOFF_S):
+                print(f"stopping: model quota exhausted ({error[:160]}). Rerun later; finished runs are kept.")
+                return 2
+            print(f"  rate limited; waiting {BACKOFF_S[attempt]} s")
+            time.sleep(BACKOFF_S[attempt])
+            waited += BACKOFF_S[attempt]
+        row = to_row(p, outcome, waited, args.target)
+        append_row(row)
+        print(f"[{count}/{len(todo)}] {p['claim']} {p['persona']} {p['pattern']}/{p['prompt_style']}: "
+              f"{row['status']} {row['decision'] or '-'} correct={row['correct']} {row['seconds']} s "
+              f"{row['prompt_tokens']}+{row['completion_tokens']} tokens")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

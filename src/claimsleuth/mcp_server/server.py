@@ -233,7 +233,10 @@ def claim_history(serial: str, claimant: str, claim_id: Optional[str] = None) ->
                               (serial.strip(), claimant.strip())):
             found.append(PastClaim(serial=r["serial"], claimant=r["claimant"], claim_date=r["claim_date"],
                                    outcome=r["outcome"], amount=r["amount"], source="claim_history"))
-        for r in conn.execute("SELECT * FROM claims WHERE id != ? AND (upper(serial) = upper(?) OR lower(claimant) = lower(?))",
+        # Evaluation claims are test fixtures, not history: the five persona variants of one packet share a
+        # claimant and serial, and must not count as each other's earlier claims.
+        for r in conn.execute("SELECT * FROM claims WHERE id != ? AND source != 'eval'"
+                              " AND (upper(serial) = upper(?) OR lower(claimant) = lower(?))",
                               (claim_id or "", serial.strip(), claimant.strip())):
             found.append(PastClaim(serial=r["serial"], claimant=r["claimant"], claim_date=r["incident_date"],
                                    outcome=r["status"], amount=None, source="claimsleuth"))

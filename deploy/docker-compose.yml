@@ -1,0 +1,34 @@
+# Local run and the single-VM option:  docker compose -f deploy/docker-compose.yml up --build
+# Secrets come from the project's .env (GOOGLE_API_KEY, A2A_SHARED_SECRET, ADJUSTER_TOKEN).
+# Only the app is published; the crew is reachable only inside the Compose network.
+name: claimsleuth
+
+services:
+  app:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.app
+    env_file: ../.env
+    environment:
+      DATA_DIR: /data
+      CREW_URL: http://crew:8101
+    ports:
+      - "127.0.0.1:${APP_HOST_PORT:-8000}:8000"
+    volumes:
+      - claimsleuth-data:/data
+    restart: unless-stopped
+
+  crew:
+    build:
+      context: ..
+      dockerfile: deploy/Dockerfile.crew
+    env_file: ../.env
+    environment:
+      APP_URL: http://app:8000
+      CREW_PUBLIC_URL: http://crew:8101/
+    expose:
+      - "8101"
+    restart: unless-stopped
+
+volumes:
+  claimsleuth-data:

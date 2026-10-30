@@ -1,0 +1,6 @@
+# Litestream replication of the app's SQLite database (used only when LITESTREAM_BUCKET is set).
+# Litestream expands ${VAR} from the environment.
+dbs:
+  - path: ${DATA_DIR}/claimsleuth.db
+    replicas:
+      - url: gcs://${LITESTREAM_BUCKET}/claimsleuth.db

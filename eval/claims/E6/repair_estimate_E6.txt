@@ -1,0 +1,9 @@
+AUTHORIZED SERVICE CENTER ESTIMATE
+Service Provider: QuickFix Mobile Care
+Date of Inspection: 2024-07-10
+Client: Tomas Silva
+
+Device: Samsung Galaxy A55
+Serial No: SM-A55-30987-K
+Diagnosis: Rear glass shattered after a fall. Camera and board working.
+Estimated Cost: $140.00

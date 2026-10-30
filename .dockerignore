@@ -1,0 +1,16 @@
+.git
+.env
+.env.*
+!.env.example
+.venv-crewai
+.venv
+**/__pycache__
+**/*.pyc
+.pytest_cache
+*.egg-info
+Documents
+data/runtime
+data/rag/index
+eval/results
+docs
+tests

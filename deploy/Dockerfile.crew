@@ -1,0 +1,20 @@
+# ClaimSleuth CrewAI fraud crew, served over A2A.
+# Build from the project folder:  docker build -f deploy/Dockerfile.crew -t claimsleuth-crew .
+FROM python:3.12-slim
+
+ENV PYTHONUNBUFFERED=1 PIP_NO_CACHE_DIR=1 PYTHONIOENCODING=utf-8 PORT=8101
+
+WORKDIR /app
+COPY requirements-crewai-service.txt .
+RUN pip install -r requirements-crewai-service.txt
+
+COPY pyproject.toml ./
+COPY src ./src
+COPY configs ./configs
+RUN pip install --no-deps -e . && useradd --create-home --uid 10001 claimsleuth
+USER claimsleuth
+EXPOSE 8101
+HEALTHCHECK --interval=30s --timeout=5s --start-period=60s \
+    CMD python -c "import os, urllib.request; urllib.request.urlopen(f'http://127.0.0.1:{os.environ[\"PORT\"]}/healthz', timeout=4)"
+# CREW_PUBLIC_URL is the address the app uses to reach this service (it goes into the A2A agent card).
+CMD ["sh", "-c", "exec python -m claimsleuth.crew.a2a_server --host 0.0.0.0 --port ${PORT} --public-url ${CREW_PUBLIC_URL:-http://crew:8101/}"]

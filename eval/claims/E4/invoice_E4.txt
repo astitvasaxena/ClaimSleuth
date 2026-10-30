@@ -1,0 +1,12 @@
+=======================================================
+APPLIANCE DEPOT SALES INVOICE
+=======================================================
+Invoice No: AD-55102
+Customer: Ravi Menon
+Purchase Date: 2023-03-15
+
+Appliance: AquaWash Front Loader 9kg
+Serial Number: AW-9K-11873-C
+Total Price: $749.00
+Policy ID: POL-APPLIANCE-PLUS-03
+=======================================================

@@ -1,0 +1,12 @@
+=======================================================
+HOME TECH ON-SITE DIAGNOSTIC
+=======================================================
+Field Dispatch No: DISP-61734
+Date: 2024-09-04
+Customer: Ravi Menon
+
+Appliance Model: AquaWash Front Loader
+Serial Number: AW-9K-55410-F
+Technician Findings: Drum motor bearing seized; motor windings burnt.
+Estimated Cost: $430.00
+=======================================================

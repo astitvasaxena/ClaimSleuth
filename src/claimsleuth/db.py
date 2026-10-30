@@ -40,6 +40,9 @@ CREATE TABLE IF NOT EXISTS past_claims (
 """
 
 PAST_CLAIMS_SEED = config.BASE_DIR / "data" / "past_claims.json"
+EVAL_CLAIMS_DIR = config.BASE_DIR / "eval" / "claims"
+EVAL_PERSONAS_DIR = config.BASE_DIR / "eval" / "personas"
+PERSONAS = ("honest", "abusive", "vague", "fraudster", "injector")
 
 
 def db_path() -> Path:
@@ -127,6 +130,45 @@ def seed_folder_claims(conn: sqlite3.Connection, folder: Path, source: str) -> i
     return added
 
 
+def eval_claim_id(packet: str, persona: str) -> str:
+    return f"EVAL-{packet}-{persona}"
+
+
+def seed_eval_claims(conn: sqlite3.Connection) -> int:
+    """The evaluation set: one claim per packet and persona (same documents, the persona's statement)."""
+    added = 0
+    if not EVAL_CLAIMS_DIR.is_dir():
+        return 0
+    for packet in sorted(p for p in EVAL_CLAIMS_DIR.iterdir() if (p / "claim.json").is_file()):
+        meta = json.loads((packet / "claim.json").read_text(encoding="utf-8"))
+        for persona in PERSONAS:
+            claim_id = eval_claim_id(packet.name, persona)
+            if conn.execute("SELECT 1 FROM claims WHERE id = ?", (claim_id,)).fetchone():
+                continue
+            statement = (EVAL_PERSONAS_DIR / f"{packet.name}_{persona}.txt").read_text(encoding="utf-8").strip()
+            insert_claim(conn, {"id": claim_id, "source": "eval", "claimant": meta["claimant_name"],
+                                "device": meta["device_model"], "incident_date": meta["incident_date"],
+                                "statement": statement, "policy_id": meta.get("policy_id")})
+            for doc in sorted(packet.iterdir()):
+                if doc.name != "claim.json" and doc.suffix.lower() in (".txt", ".md", ".pdf"):
+                    insert_document(conn, claim_id, doc, doc.relative_to(config.BASE_DIR).as_posix())
+            added += 1
+    return added
+
+
+def seed_past_claims(conn: sqlite3.Connection, seed_file: Path) -> int:
+    """Insert claim-history rows that are not there yet (matched on serial, claimant and date)."""
+    added = 0
+    if not seed_file.is_file():
+        return 0
+    for row in json.loads(seed_file.read_text(encoding="utf-8")):
+        key = (row["serial"], row["claimant"], row["claim_date"])
+        if not conn.execute("SELECT 1 FROM past_claims WHERE serial = ? AND claimant = ? AND claim_date = ?", key).fetchone():
+            conn.execute("INSERT INTO past_claims VALUES (:serial, :claimant, :claim_date, :outcome, :amount)", row)
+            added += 1
+    return added
+
+
 def init() -> dict:
     """Create the tables and load the demo claims and the claim-history seed. Safe to run repeatedly."""
     with connect() as conn:
@@ -134,14 +176,11 @@ def init() -> dict:
         if "trace_id" not in {r["name"] for r in conn.execute("PRAGMA table_info(runs)")}:
             conn.execute("ALTER TABLE runs ADD COLUMN trace_id TEXT")          # databases created before the column
         demos = seed_folder_claims(conn, config.DEMO_CLAIMS_DIR, "demo")
-        seeded = 0
-        if not conn.execute("SELECT 1 FROM past_claims LIMIT 1").fetchone():
-            rows = json.loads(PAST_CLAIMS_SEED.read_text(encoding="utf-8"))
-            conn.executemany("INSERT INTO past_claims VALUES (:serial, :claimant, :claim_date, :outcome, :amount)", rows)
-            seeded = len(rows)
+        evals = seed_eval_claims(conn)
+        seeded = seed_past_claims(conn, PAST_CLAIMS_SEED) + seed_past_claims(conn, EVAL_CLAIMS_DIR / "past_claims.json")
         counts = {t: conn.execute(f"SELECT COUNT(*) FROM {t}").fetchone()[0]
                   for t in ("claims", "documents", "past_claims")}
-    return {"db": str(db_path()), "demos_added": demos, "past_claims_added": seeded, "counts": counts}
+    return {"db": str(db_path()), "demos_added": demos, "eval_claims_added": evals, "past_claims_added": seeded, "counts": counts}
 
 
 def get_claim(claim_id: str) -> Optional[dict]:

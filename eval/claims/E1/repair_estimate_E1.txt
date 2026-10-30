@@ -1,0 +1,11 @@
+AUTHORIZED SERVICE CENTER ESTIMATE
+Service Provider: QuickFix Mobile Care
+Date of Inspection: 2024-06-12
+Client: Maya Chen
+
+Device: Google Pixel 8
+Serial No: SN-PX8-40211-A
+Diagnosis: Cracked display glass from an accidental drop. Board and battery intact.
+Display assembly: $140.00
+Labour: $40.00
+Estimated Cost: $180.00

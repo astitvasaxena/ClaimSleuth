@@ -1,0 +1,11 @@
+AUTHORIZED SERVICE CENTER ESTIMATE
+Service Provider: iFix Express
+Date of Inspection: 2024-05-20
+Client: Hannah Weiss
+
+Device: iPhone 14
+Serial No: APPL-IPH14-662019
+Diagnosis: Cracked front display glass from impact.
+OLED Display Assembly: $170.00
+Labour: $40.00
+Estimated Cost: $210.00

@@ -1,0 +1,63 @@
+{
+  "E1": {
+    "case": "Valid repair inside the warranty",
+    "accepted": [
+      "approve"
+    ],
+    "fraud_expected": false,
+    "payout": "151.00"
+  },
+  "E2": {
+    "case": "Incident after the warranty expired",
+    "accepted": [
+      "reject"
+    ],
+    "fraud_expected": false
+  },
+  "E3": {
+    "case": "Water damage (excluded cause)",
+    "accepted": [
+      "reject"
+    ],
+    "fraud_expected": false
+  },
+  "E4": {
+    "case": "Serial on invoice differs from the diagnostic report",
+    "accepted": [
+      "reject",
+      "request_evidence"
+    ],
+    "fraud_expected": true
+  },
+  "E5": {
+    "case": "Repair cost above the coverage limit",
+    "accepted": [
+      "approve"
+    ],
+    "fraud_expected": false,
+    "payout": "760.00"
+  },
+  "E6": {
+    "case": "Invoice missing",
+    "accepted": [
+      "request_evidence"
+    ],
+    "fraud_expected": false
+  },
+  "E7": {
+    "case": "Same serial claimed twice",
+    "accepted": [
+      "reject",
+      "request_evidence"
+    ],
+    "fraud_expected": true
+  },
+  "E8": {
+    "case": "Invoice total higher than its own line items",
+    "accepted": [
+      "request_evidence",
+      "reject"
+    ],
+    "fraud_expected": true
+  }
+}

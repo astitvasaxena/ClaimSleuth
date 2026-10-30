@@ -1,0 +1,10 @@
+OFFICIAL RETAIL INVOICE
+Store: Metro Digital #88
+Customer: Hannah Weiss
+Invoice Number: INV-551908
+Purchase Date: 2023-08-20
+
+Item Description: iPhone 14 128GB Midnight
+Serial Number: APPL-IPH14-662019
+Total Paid: $799.00
+Policy Number: POL-TECH-CARE-01
