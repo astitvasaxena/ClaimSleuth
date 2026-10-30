@@ -23,6 +23,7 @@ from pydantic import ValidationError
 from claimsleuth.agents.common import (BB_CLAIM, BB_COVERAGE, BB_CREW_METRICS, BB_DOCUMENTS, BB_FACTS,
                                        BB_GUARDRAIL_HITS, BB_RUN, read)
 from claimsleuth.agents.quote_check import check_quote
+from claimsleuth import ratelimit
 from claimsleuth.callbacks import metrics
 from claimsleuth.callbacks.guardrails import redact_toxicity, scan_injection, scan_toxicity
 from claimsleuth.mcp_server.server import (CoverageCheck, HistoryResult, ParsedDocument, PayoutResult,
@@ -85,9 +86,12 @@ async def after_agent(callback_context) -> Optional[types.Content]:
         check_coverage_quotes(state)
     rec = _recorder(callback_context)
     if rec:
+        crew = (read(state, BB_CREW_METRICS) or {}) if agent == "fraud_crew" else {}
+        if crew:
+            rec.add_wait(agent, float(crew.get("rate_limit_wait_s") or 0))    # the crew's pacing is not agent time
         rec.stop(agent)
-        if agent == "fraud_crew":
-            record_crew_metrics(rec, read(state, BB_CREW_METRICS) or {})
+        if crew:
+            record_crew_metrics(rec, crew)
         await rec.emit(agent, "agent_end")
     return None
 
@@ -134,8 +138,10 @@ def record_crew_metrics(rec: metrics.RunRecorder, crew: dict) -> None:
 async def before_model(callback_context, llm_request) -> None:
     state, agent = callback_context.state, callback_context.agent_name
     rec = _recorder(callback_context)
+    waited = await ratelimit.pace()
     if rec:
-        await rec.emit(agent, "model_call")
+        rec.add_wait(agent, waited)
+        await rec.emit(agent, "model_call", f"waited {waited:.1f} s for the rate limit" if waited > 0.05 else "")
     claim = read(state, BB_CLAIM) or {}
     statement = claim.get("statement", "")
     screen_text(state, statement, "customer_statement", agent)
@@ -143,7 +149,8 @@ async def before_model(callback_context, llm_request) -> None:
         for part in content.parts or []:
             if part.function_response is not None:
                 response = part.function_response.response or {}
-                where = (response.get("structuredContent") or {}).get("doc_id") or f"tool:{part.function_response.name}"
+                data = response.get("result") or response.get("structuredContent") or {}
+                where = (data.get("doc_id") if isinstance(data, dict) else None) or f"tool:{part.function_response.name}"
                 screen_text(state, json.dumps(response), where, agent)
             elif part.text:
                 part.text = redact_toxicity(part.text) if scan_toxicity(part.text) else part.text
@@ -205,6 +212,7 @@ async def after_tool(tool, args, tool_context, tool_response) -> Optional[dict]:
             structured = tool_response.get("structuredContent", tool_response.get("structured_content"))
             try:
                 model.model_validate(structured)
+                replacement = {"result": structured}      # once, not twice (MCP also sends it as JSON text)
             except ValidationError as exc:
                 record_hit(tool_context.state, GuardrailHit(kind="bad_tool_result", where=f"{agent}:{tool.name}",
                                                             detail=str(exc.errors()[:2])[:300]), agent)

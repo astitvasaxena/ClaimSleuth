@@ -22,7 +22,8 @@ claimsleuth-app  (FastAPI + Google ADK)                    claimsleuth-crew  (Cr
    OpenTelemetry trace across ADK -> A2A -> CrewAI -> MCP; hash-chained audit log
 ```
 
-- **Model:** one pinned model for everything, `gemini-3.5-flash-lite` (`src/claimsleuth/config.py`).
+- **Model:** one pinned model for everything, `gemini-3.5-flash-lite` (`src/claimsleuth/config.py`), on the Gemini free tier. Model calls are spaced to the free tier's requests per minute (`MODEL_MAX_RPM`).
+- **Data on the free tier:** Google may use free-tier inputs to improve its products. The demo uses synthetic claims only; do not use real customer documents on the free tier.
 - **Patterns:** sequential, parallel (Policy and the crew at the same time) and hierarchical (the Manager chooses who to call; the default).
 - **Prompt styles:** `direct` and `react` (ReAct instructions plus ADK's `PlanReActPlanner`).
 
@@ -52,14 +53,14 @@ Without Docker: `pip install -r requirements.txt && pip install -e .`, start the
 | 7 | Only CrewAI and ADK | `requirements*.txt` | `grep -rEi "langchain|langgraph|autogen|llama_index" src requirements*.txt` finds nothing |
 | 8 | Guardrails, tool-result checks, prompt variants, personas | `callbacks/hooks.py`, `crew/crew.py` (task guardrails), `agents/prompts/`, `eval/personas/` | `pytest tests/test_guardrails.py`; `python eval/check_eval_set.py` |
 | 9 | Tracing, audit, provenance | `tracing.py`, `audit.py`, quotes checked against documents | `GET /api/audit/{claim_id}/verify`; `GET /api/runs/{run_id}/trace` |
-| 10 | ~40 runs, cost, time, prompt variance, boxplots | `eval/run_eval.py`, `eval/charts.py` | `python eval/run_eval.py --experiment A`, then `B`, then `python eval/charts.py` |
+| 10 | ~40 runs, cost, time, prompt variance, boxplots | `eval/run_eval.py`, `eval/charts.py` (44 runs) | `python eval/run_eval.py --experiment A`, then `B`, then `python eval/charts.py` |
 | 11 | Cloud deployment | `deploy/` | not deployed yet |
 
 Tests: `pytest` (offline; fake models are labelled as test doubles), `.venv-crewai/Scripts/python -m unittest tests.crew.test_crew_service` (crew side), `pytest -m live` (spends model calls).
 
 ## Evaluation
 
-Not run yet. The claim set is ready: 8 claim packets with known answers in `eval/claims/` and 40 customer statements in 5 personas (honest, abusive, vague, fraudster, injector) in `eval/personas/`. Experiment A is 48 runs and experiment B is 40 runs. Results, charts and costs will be in `eval/results/summary.md`, and the dashboard's Evaluation page shows them.
+Not run yet. The repo holds 8 claim packets with known answers (`eval/claims/`) and 40 customer statements in 5 personas (honest, abusive, vague, fraudster, injector; `eval/personas/`). To fit the free tier, the evaluation uses 4 of the packets (E1 valid repair, E3 excluded cause, E4 serial mismatch, E6 missing invoice): experiment A is 3 patterns x 2 prompt styles x 4 claims = 24 runs, and experiment B is the best configuration of A x 4 claims x 5 personas = 20 runs, 44 in total. When the daily quota runs out, the runner saves its progress and stops ("daily quota reached, resume tomorrow"); rerunning it continues. Results, charts and costs will be in `eval/results/summary.md`, and the dashboard's Evaluation page shows them.
 
 ## Limits
 
@@ -67,6 +68,6 @@ Not run yet. The claim set is ready: 8 claim packets with known answers in `eval
 - No email intake and no payments: a person approves, and paying is outside the system.
 - The policy library is three synthetic policies (`configs/policies.json`); uploaded policies are searched for their own claim only.
 - The injection and abuse screens are pattern lists. They catch the phrasings they list, not every paraphrase.
-- The Gemini free tier allows about 20 requests per model per day on some models; one investigation uses about 20 model calls.
+- The Gemini free tier has daily request limits per model (shown in Google AI Studio); one investigation uses about 21 model calls, so the evaluation is spread over several days.
 
 The build history, every difference from the plan and every check is in `docs/BUILD_LOG.md`.

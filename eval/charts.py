@@ -111,7 +111,7 @@ def write_summary(rows: list[dict], charts: list[str], out: Path, heatmaps: int)
     targets = sorted({r["target"] for r in rows})
     lines = ["# ClaimSleuth evaluation", "",
              f"Model: {', '.join(models)}. Target: {', '.join(targets)}. Runs: {len(rows)} "
-             f"(experiment A {len(a)} of 48, experiment B {len(b)} of 40). Summary written {time.strftime('%Y-%m-%d')}; "
+             f"(experiment A {len(a)} of 24, experiment B {len(b)} of 20; claims E1, E3, E4, E6). Summary written {time.strftime('%Y-%m-%d')}; "
              f"runs finished {min(r['finished_at'] for r in rows)[:10]} to {max(r['finished_at'] for r in rows)[:10]}.", ""]
     if price:
         lines += [f"Prices used for cost: ${price['input_per_million']} per million input tokens and "
@@ -128,7 +128,7 @@ def write_summary(rows: list[dict], charts: list[str], out: Path, heatmaps: int)
                      f"{sum(num(r['seconds']) or 0 for r in rows) / 3600:.2f}",
                      f"{sum(num(r['rate_limit_wait_s']) or 0 for r in rows) / 3600:.2f}"]]) + [""]
     if a:
-        lines += ["## Experiment A: pattern and prompt style (honest persona, 8 claims each)", ""]
+        lines += ["## Experiment A: pattern and prompt style (honest persona, 4 claims each)", ""]
         body = []
         for c in sorted({config_name(r) for r in a}):
             g = [r for r in a if config_name(r) == c]
@@ -144,7 +144,7 @@ def write_summary(rows: list[dict], charts: list[str], out: Path, heatmaps: int)
                         for p in sorted({r["claim"] for r in a})]) + [""]
     if b:
         best = f"{b[0]['pattern']}/{b[0]['prompt_style']}"
-        lines += [f"## Experiment B: personas ({best}, 8 claims each)", ""]
+        lines += [f"## Experiment B: personas ({best}, 4 claims each)", ""]
         body = []
         for persona in PERSONA_ORDER:
             g = [r for r in b if r["persona"] == persona]

@@ -123,8 +123,11 @@ class TestToolCallbacks(unittest.TestCase):
 
     def test_valid_tool_result_passes(self):
         tool = SimpleNamespace(name="compute_payout")
-        response = {"structuredContent": {"amount": "251.00", "breakdown": {"payout": "251.00"}}, "isError": False}
-        self.assertIsNone(run(hooks.after_tool(tool, {}, ctx(state_for(), "settlement_agent"), response)))
+        structured = {"amount": "251.00", "breakdown": {"payout": "251.00"}}
+        response = {"content": [{"type": "text", "text": "the same data as indented JSON"}],
+                    "structuredContent": structured, "isError": False}
+        replaced = run(hooks.after_tool(tool, {}, ctx(state_for(), "settlement_agent"), response))
+        self.assertEqual(replaced, {"result": structured})          # the same data once, without the JSON-text copy
 
     def test_tool_not_on_the_agents_list_is_refused(self):
         refused = run(hooks.before_tool(SimpleNamespace(name="compute_payout"), {}, ctx(state_for(), "evidence_agent")))

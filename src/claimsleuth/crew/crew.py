@@ -20,11 +20,12 @@ from typing import Any
 
 from crewai import LLM, Agent, Crew, Process, Task
 from crewai.events import ToolUsageFinishedEvent, crewai_event_bus
+from crewai.hooks import register_before_llm_call_hook
 from crewai.mcp import MCPServerHTTP
 from crewai.mcp.filters import create_static_tool_filter
 from pydantic import ValidationError
 
-from claimsleuth import config
+from claimsleuth import config, ratelimit
 from claimsleuth.models import Fraud
 from claimsleuth.quotes import quote_problem
 
@@ -37,7 +38,7 @@ def build_llm() -> LLM:
     the thought signatures that Gemini 3 models require on tool calls (HTTP 400)."""
     from google.genai import types
     http = types.HttpOptions(timeout=config.MODEL_CALL_TIMEOUT_S * 1000, retry_options=types.HttpRetryOptions(
-        attempts=config.MODEL_RETRY_ATTEMPTS, initial_delay=2.0, max_delay=30.0, http_status_codes=[429, 500, 502, 503, 504]))
+        attempts=config.MODEL_RETRY_ATTEMPTS, initial_delay=2.0, max_delay=30.0, http_status_codes=[500, 502, 503, 504]))
     return LLM(model=f"gemini/{config.GEMINI_MODEL}", api_key=config.GOOGLE_API_KEY, temperature=0,
                client_params={"http_options": http})
 
@@ -71,6 +72,20 @@ def _record_tool_use(source, event) -> None:
             args = {}
     with _TOOL_USE_LOCK:
         TOOL_USE[str(event.agent_id)].append((event.tool_name, args))
+
+
+# Rate-limit pacing of the crew's model calls (per agent id), kept out of the agents' timings.
+WAITS: dict[str, float] = defaultdict(float)
+
+
+def _pace_llm_call(context) -> None:
+    waited = ratelimit.pace_sync()
+    if waited and context.agent is not None:
+        with _TOOL_USE_LOCK:
+            WAITS[str(context.agent.id)] += waited
+
+
+register_before_llm_call_hook(_pace_llm_call)
 
 
 def tools_used(agent: Agent) -> list[tuple[str, dict]]:
@@ -179,13 +194,15 @@ def run_crew(request: dict, documents: dict[str, dict[int, str]], traceparent: s
                                   "documents": ", ".join(request.get("documents", [])),
                                   "facts": json.dumps(request.get("facts") or {}),
                                   "statement": request.get("statement", "")})
-    seconds = round(time.perf_counter() - started, 2)
+    with _TOOL_USE_LOCK:
+        waits = {"forensics": WAITS.pop(str(forensics.id), 0.0), "history": WAITS.pop(str(history.id), 0.0)}
+    seconds = round(time.perf_counter() - started - sum(waits.values()), 2)
     fraud = result.pydantic if isinstance(result.pydantic, Fraud) else Fraud.model_validate_json(result.raw)
     done = metrics.task_done_at + [time.perf_counter()] * 2          # the tasks run in order: forensics, history
     per_agent = {"forensics": {**usage(forensics_llm), "tool_calls": len(tools_used(forensics)),
-                               "seconds": round(done[0] - started, 2)},
+                               "seconds": round(done[0] - started - waits["forensics"], 2)},
                  "history": {**usage(history_llm), "tool_calls": len(tools_used(history)),
-                             "seconds": round(done[1] - done[0], 2)}}
+                             "seconds": round(done[1] - done[0] - waits["history"], 2)}}
     with _TOOL_USE_LOCK:
         TOOL_USE.pop(str(forensics.id), None)
         TOOL_USE.pop(str(history.id), None)
@@ -197,7 +214,7 @@ def run_crew(request: dict, documents: dict[str, dict[int, str]], traceparent: s
                  span(trace_id, secrets.token_hex(8), crew_span, "crewai.task.forensics", started_ns, ends[0]),
                  span(trace_id, secrets.token_hex(8), crew_span, "crewai.task.history", ends[0], ends[1])]
     return {"fraud": fraud.model_dump(mode="json"), "spans": spans,
-            "metrics": {"seconds": seconds, "steps": metrics.steps,
+            "metrics": {"seconds": seconds, "steps": metrics.steps, "rate_limit_wait_s": round(sum(waits.values()), 2),
                         "tool_calls": sum(a["tool_calls"] for a in per_agent.values()),
                         "tasks_completed": len(metrics.tasks),
                         "prompt_tokens": sum(a["prompt_tokens"] for a in per_agent.values()),

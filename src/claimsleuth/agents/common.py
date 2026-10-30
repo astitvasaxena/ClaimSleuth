@@ -28,7 +28,7 @@ BB_GUARDRAIL_HITS, BB_REPORT, BB_CREW_METRICS = "bb_guardrail_hits", "bb_report"
 def model() -> Gemini:
     return Gemini(model=config.GEMINI_MODEL, retry_options=types.HttpRetryOptions(
         attempts=config.MODEL_RETRY_ATTEMPTS, initial_delay=2.0, max_delay=30.0, exp_base=2.0,
-        http_status_codes=[429, 500, 502, 503, 504]))
+        http_status_codes=[500, 502, 503, 504]))     # 429s end the run (see ratelimit.py)
 
 
 def content_config() -> types.GenerateContentConfig:

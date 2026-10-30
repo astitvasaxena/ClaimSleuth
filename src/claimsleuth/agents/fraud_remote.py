@@ -12,7 +12,7 @@ from google.adk.agents.remote_a2a_agent import RemoteA2aAgent
 from google.genai import types
 from pydantic import ValidationError
 
-from claimsleuth import config
+from claimsleuth import config, ratelimit
 from claimsleuth.agents.common import (BB_CLAIM, BB_CREW_METRICS, BB_DOCUMENTS, BB_FACTS, BB_FRAUD, SECRET_HEADER,
                                        add_guardrail_hit, read)
 from claimsleuth.models import Fraud, GuardrailHit
@@ -43,7 +43,9 @@ def _capture_reply(callback_context):
         reply = json.loads(text or "")
         fraud = Fraud.model_validate(reply["fraud"])
     except (json.JSONDecodeError, KeyError, TypeError, ValidationError):
-        detail = (text or (last.error_message if last and last.error_message else "no reply"))[:300]
+        detail = (text or (last.error_message if last and last.error_message else "no reply"))[:600]
+        if ratelimit.classify(detail):          # the crew hit the model's rate limit: the run fails as rate-limited
+            raise RuntimeError(f"fraud crew: {detail}")
         add_guardrail_hit(state, GuardrailHit(kind="bad_output", where=NAME, detail=f"unusable crew reply: {detail}"))
         return None
     state[BB_FRAUD] = fraud.model_dump_json()

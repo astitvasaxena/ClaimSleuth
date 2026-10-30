@@ -2,8 +2,12 @@
 The evaluation runner. It calls the ClaimSleuth API the way a client does, one run at a time, and appends one
 row per run to eval/results/runs.csv. It is resumable: runs already in the file are skipped.
 
-    python eval/run_eval.py --url http://127.0.0.1:8000 --experiment A     # 3 patterns x 2 prompt styles x 8 claims
-    python eval/run_eval.py --url http://127.0.0.1:8000 --experiment B     # best configuration of A x 40 variants
+    python eval/run_eval.py --url http://127.0.0.1:8000 --experiment A     # 3 patterns x 2 prompt styles x 4 claims = 24
+    python eval/run_eval.py --url http://127.0.0.1:8000 --experiment B     # best configuration of A x 4 claims x 5 personas = 20
+
+The evaluation uses 4 of the 8 claim packets (E1 valid repair, E3 excluded cause, E4 serial mismatch, E6 missing
+invoice), so the 44 runs fit the free tier of the pinned model; all 8 packets and 40 personas stay in eval/.
+On a daily quota error the runner stops with "daily quota reached, resume tomorrow"; rerun it the next day.
     python eval/run_eval.py --dry-run                                       # print the plan; no requests
 
 Needs ADJUSTER_TOKEN (from .env). Every row must come from the pinned model (claimsleuth.config.GEMINI_MODEL);
@@ -18,13 +22,14 @@ from pathlib import Path
 
 import httpx
 
-from claimsleuth import config
+from claimsleuth import config, ratelimit
 from claimsleuth.db import PERSONAS, eval_claim_id
 
 RESULTS = Path(__file__).resolve().parent / "results"
 RUNS_CSV = RESULTS / "runs.csv"
 LABELS = json.loads((Path(__file__).resolve().parent / "claims" / "labels.json").read_text(encoding="utf-8"))
 PACKETS = sorted(LABELS)
+EVAL_CLAIMS = ("E1", "E3", "E4", "E6")              # the claims the 44-run evaluation uses
 PATTERNS = ("sequential", "parallel", "hierarchical")
 STYLES = ("direct", "react")
 AGENTS = ("claim_manager", "evidence_agent", "policy_agent", "settlement_agent", "fraud_crew", "forensics", "history")
@@ -38,12 +43,12 @@ BACKOFF_S = (60, 120, 240, 480, 900)
 
 def plan_a() -> list[dict]:
     return [{"experiment": "A", "claim": p, "persona": "honest", "pattern": pat, "prompt_style": st}
-            for pat in PATTERNS for st in STYLES for p in PACKETS]
+            for pat in PATTERNS for st in STYLES for p in EVAL_CLAIMS]
 
 
 def plan_b(best: tuple[str, str]) -> list[dict]:
     return [{"experiment": "B", "claim": p, "persona": per, "pattern": best[0], "prompt_style": best[1]}
-            for p in PACKETS for per in PERSONAS]
+            for p in EVAL_CLAIMS for per in PERSONAS]
 
 
 def key(row: dict) -> tuple:
@@ -86,11 +91,12 @@ def best_config(rows: list[dict]) -> tuple[str, str]:
 
 
 def is_rate_limit(error: str) -> bool:
-    return any(s in (error or "") for s in ("429", "RESOURCE_EXHAUSTED", "ResourceExhausted"))
+    return ratelimit.classify(error) is not None
 
 
 def is_daily_quota(error: str) -> bool:
-    return "per day" in (error or "").lower() or "PerDay" in (error or "")
+    """The server stores rate-limit failures as 'RATE_LIMIT_DAILY: ...' or 'RATE_LIMIT_MINUTE: ...'."""
+    return (error or "").startswith(ratelimit.DAILY) or ratelimit.classify(error) == ratelimit.DAILY
 
 
 class Client:
@@ -139,7 +145,7 @@ def to_row(planned: dict, outcome: dict, waited: float, target: str) -> dict:
     row = {**planned, "run_id": run["id"], "model": run["model"], "target": target, "status": run["status"],
            "error": (run["error"] or "")[:300], "expected": "|".join(label["accepted"]), "decision": decision,
            "correct": correct, "fraud_flagged": flagged, "payout": payout, "seconds": run["seconds"],
-           "rate_limit_wait_s": round(waited, 1), "prompt_tokens": run["prompt_tokens"],
+           "rate_limit_wait_s": round(waited + float(run.get("wait_seconds") or 0), 1), "prompt_tokens": run["prompt_tokens"],
            "completion_tokens": run["completion_tokens"], "cost_usd": run["cost_usd"] if run["cost_usd"] is not None else "",
            "hits_injection": sum(h["kind"] == "injection" for h in hits), "hits_abuse": sum(h["kind"] == "abuse" for h in hits),
            "finished_at": time.strftime("%Y-%m-%dT%H:%M:%S"), **totals}
@@ -185,10 +191,14 @@ def main() -> int:
             error = outcome["run"]["error"] or ""
             if outcome["run"]["status"] == "completed" or not is_rate_limit(error):
                 break
-            if is_daily_quota(error) or attempt == len(BACKOFF_S):
-                print(f"stopping: model quota exhausted ({error[:160]}). Rerun later; finished runs are kept.")
+            if is_daily_quota(error):
+                print(f"daily quota reached, resume tomorrow. {len(read_rows())} runs are saved in {RUNS_CSV}; this run "
+                      f"({p['claim']} {p['persona']} {p['pattern']}/{p['prompt_style']}) will be redone. [{error[:200]}]")
+                return 3
+            if attempt == len(BACKOFF_S):
+                print(f"stopping: still rate limited after {len(BACKOFF_S)} waits ({error[:160]}). Finished runs are kept.")
                 return 2
-            print(f"  rate limited; waiting {BACKOFF_S[attempt]} s")
+            print(f"  per-minute rate limit; waiting {BACKOFF_S[attempt]} s (not counted as agent time)")
             time.sleep(BACKOFF_S[attempt])
             waited += BACKOFF_S[attempt]
         row = to_row(p, outcome, waited, args.target)

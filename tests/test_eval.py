@@ -20,6 +20,7 @@ def load(name):
 
 
 check_eval_set, run_eval, charts = load("check_eval_set"), load("run_eval"), load("charts")
+from claimsleuth import ratelimit  # noqa: E402
 
 
 def outcome(decision, flagged=False, payout=None, status="completed"):
@@ -43,9 +44,10 @@ class TestClaimSet(unittest.TestCase):
 class TestPlanAndScoring(unittest.TestCase):
 
     def test_plan_sizes(self):
-        self.assertEqual(len(run_eval.plan_a()), 48)
-        self.assertEqual(len(run_eval.plan_b(("hierarchical", "direct"))), 40)
-        self.assertEqual(len({run_eval.key(p) for p in run_eval.plan_a()}), 48)
+        self.assertEqual(len(run_eval.plan_a()), 24)
+        self.assertEqual(len(run_eval.plan_b(("hierarchical", "direct"))), 20)
+        self.assertEqual(len({run_eval.key(p) for p in run_eval.plan_a()}), 24)
+        self.assertEqual({p["claim"] for p in run_eval.plan_a()}, {"E1", "E3", "E4", "E6"})
 
     def test_scoring(self):
         p = {"experiment": "A", "claim": "E5", "persona": "honest", "pattern": "sequential", "prompt_style": "direct"}
@@ -62,17 +64,25 @@ class TestPlanAndScoring(unittest.TestCase):
         rows = []
         for pattern in run_eval.PATTERNS:
             for style in run_eval.STYLES:
-                for i, claim in enumerate(run_eval.PACKETS):
-                    good = (pattern, style) in (("parallel", "direct"), ("hierarchical", "react")) or i < 4
+                for i, claim in enumerate(run_eval.EVAL_CLAIMS):
+                    good = (pattern, style) in (("parallel", "direct"), ("hierarchical", "react")) or i < 2
                     cost = "0.002" if pattern == "parallel" else "0.001"
                     rows.append({"experiment": "A", "pattern": pattern, "prompt_style": style, "correct": str(good),
                                  "cost_usd": cost, "seconds": "10"})
         self.assertEqual(run_eval.best_config(rows), ("hierarchical", "react"))   # tied accuracy, lower cost
 
     def test_rate_limit_detection(self):
-        self.assertTrue(run_eval.is_rate_limit("_ResourceExhaustedError: 429 RESOURCE_EXHAUSTED"))
-        self.assertTrue(run_eval.is_daily_quota("Generate content requests per day limit exceeded"))
-        self.assertFalse(run_eval.is_rate_limit("TimeoutError"))
+        daily = ("_ResourceExhaustedError: 429 RESOURCE_EXHAUSTED. Quota exceeded for metric: generativelanguage."
+                 "googleapis.com/generate_content_free_tier_requests, limit: 20, model: gemini-3.6-flash, description: "
+                 "Generate content requests per day limit exceeded on Free Tier.")
+        minute = "429 RESOURCE_EXHAUSTED. Quota exceeded for metric: requests per minute, limit: 15"
+        self.assertEqual(ratelimit.classify(daily), ratelimit.DAILY)
+        self.assertEqual(ratelimit.classify(minute), ratelimit.MINUTE)
+        self.assertIsNone(ratelimit.classify("TimeoutError: run stopped"))
+        self.assertTrue(run_eval.is_daily_quota(f"{ratelimit.DAILY}: {ratelimit.quota_detail(daily)}"))
+        self.assertFalse(run_eval.is_daily_quota(f"{ratelimit.MINUTE}: x"))
+        self.assertTrue(run_eval.is_rate_limit(f"{ratelimit.MINUTE}: x"))
+        self.assertIn("per day", ratelimit.quota_detail(daily))
 
 
 class TestCharts(unittest.TestCase):

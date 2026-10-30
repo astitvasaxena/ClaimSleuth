@@ -20,7 +20,7 @@ from google.adk.runners import Runner
 from google.adk.sessions import InMemorySessionService
 from google.genai import types
 
-from claimsleuth import audit, config, db, tracing
+from claimsleuth import audit, config, db, ratelimit, tracing
 from claimsleuth.agents import patterns
 from claimsleuth.callbacks import metrics
 from claimsleuth.agents.common import (BB_CLAIM, BB_DOCUMENTS, BB_GUARDRAIL_HITS, BB_REPORT, BB_RUN, PROMPT_STYLES,
@@ -97,18 +97,20 @@ async def run_claim(claim_id: str, pattern: str = "hierarchical", prompt_style: 
     except TimeoutError:
         error = f"run stopped after {config.RUN_TIMEOUT_S} s"
     except Exception as exc:                                  # e.g. the model-call cap, or a service that is down
-        error = f"{type(exc).__name__}: {str(exc)[:500]}"
+        text = f"{type(exc).__name__}: {exc}"
+        kind = ratelimit.classify(text)
+        error = f"{kind}: {ratelimit.quota_detail(text)}" if kind else text[:500]
     finally:
         for toolset in toolsets:
             await toolset.close()
         metrics.finish_run(run_id)
-    seconds = round(time.perf_counter() - started, 2)
+    seconds = round(time.perf_counter() - started - recorder.wait_seconds, 2)     # rate-limit waits excluded
     totals = recorder.totals()
     with db.connect() as conn:
         conn.execute("UPDATE runs SET seconds = ?, status = ?, error = ?, prompt_tokens = ?, completion_tokens = ?,"
-                     " cost_usd = ?, trace_id = ? WHERE id = ?", (seconds, status, error, totals["prompt_tokens"],
-                                                                  totals["completion_tokens"], totals["cost_usd"],
-                                                                  run.get("trace_id"), run_id))
+                     " cost_usd = ?, trace_id = ?, wait_seconds = ? WHERE id = ?",
+                     (seconds, status, error, totals["prompt_tokens"], totals["completion_tokens"], totals["cost_usd"],
+                      run.get("trace_id"), totals["rate_limit_wait_s"], run_id))
         conn.executemany("INSERT INTO agent_metrics (run_id, agent, seconds, prompt_tokens, completion_tokens,"
                          " llm_calls, tool_calls, errors, guardrail_hits) VALUES (:run_id, :agent, :seconds,"
                          " :prompt_tokens, :completion_tokens, :llm_calls, :tool_calls, :errors, :guardrail_hits)",

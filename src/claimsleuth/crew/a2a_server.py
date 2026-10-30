@@ -26,7 +26,7 @@ from a2a.types import AgentCapabilities, AgentCard, AgentInterface, AgentSkill
 from a2a.utils.constants import PROTOCOL_VERSION_CURRENT
 from starlette.applications import Starlette
 
-from claimsleuth import config
+from claimsleuth import config, ratelimit
 from claimsleuth.crew.crew import SECRET_HEADER, run_crew
 
 AGENT_CARD_PATH = "/.well-known/agent-card.json"
@@ -106,7 +106,10 @@ class CrewExecutor(AgentExecutor):
             reply = await asyncio.to_thread(run_crew, request, documents, REQUEST_TRACEPARENT.get())
         except Exception as exc:                                     # reported to ADK, which records bad_output
             print(f"[crew] {request['claim_id']} failed: {type(exc).__name__}: {exc}", file=sys.stderr)
-            await updater.failed(new_text_message(f"Fraud crew failed: {type(exc).__name__}: {str(exc)[:300]}",
+            text = f"{type(exc).__name__}: {exc}"
+            kind = ratelimit.classify(text)
+            reason = f"{kind}: {ratelimit.quota_detail(text)}" if kind else text[:300]
+            await updater.failed(new_text_message(f"Fraud crew failed: {reason}",
                                                   context_id=context_id, task_id=task_id))
             return
         print(f"[crew] {request['claim_id']} flagged={reply['fraud']['flagged']} "
