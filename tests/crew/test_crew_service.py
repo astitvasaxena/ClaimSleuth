@@ -60,8 +60,37 @@ class TestTaskGuardrail(unittest.TestCase):
         crew_module.TOOL_USE["agent-under-test"].append((tool, args))
 
     def check(self, raw, must_read=(), must_call=""):
-        guard = crew_module.fraud_guardrail(DOCS, self.agent, list(must_read), must_call)
+        guard = crew_module.fraud_guardrail(DOCS, self.agent, list(must_read), must_call, self.agent)
         return guard(SimpleNamespace(raw=raw))
+
+    def read_all(self):
+        for name in DOCS:
+            self.use("mcp_x_parse_document", doc_id=name)
+
+    def test_high_finding_without_quotes_is_rejected(self):
+        self.read_all()
+        unquoted = {"findings": [{"kind": "serial_number_mismatch", "severity": "high", "detail": "differ", "quotes": []}],
+                    "flagged": True}
+        ok, message = self.check(json.dumps(unquoted), must_read=list(DOCS))
+        self.assertFalse(ok)
+        self.assertIn("quotes nothing", message)
+        low = {"findings": [{"kind": "note", "severity": "low", "detail": "minor", "quotes": []}], "flagged": False}
+        self.assertTrue(self.check(json.dumps(low), must_read=list(DOCS))[0])          # low findings may be unquoted
+
+    def amount_finding(self):
+        return json.dumps({"findings": [{"kind": "amount_mismatch", "severity": "high", "detail": "total too high",
+                                         "quotes": [{"doc_id": "CLM-1/invoice.txt", "line": 9,
+                                                     "text": "Serial Number: REF-HC-77100-A"}]}], "flagged": True})
+
+    def test_amount_finding_needs_a_totals_check_that_found_a_difference(self):
+        self.read_all()
+        ok, message = self.check(self.amount_finding(), must_read=list(DOCS))      # tool never called
+        self.assertFalse(ok)
+        self.assertIn("check_invoice_totals", message)
+        self.use("mcp_x_check_invoice_totals", line_items=["1099.00", "87.92"], stated_total="1186.92")
+        self.assertFalse(self.check(self.amount_finding(), must_read=list(DOCS))[0])  # the tool said they match
+        self.use("mcp_x_check_invoice_totals", line_items=["120.00", "80.00", "40.00"], stated_total="390.00")
+        self.assertTrue(self.check(self.amount_finding(), must_read=list(DOCS))[0])   # the tool found $150.00
 
     def test_rejected_without_reading_every_document(self):
         self.use("mcp_x_parse_document", doc_id="CLM-1/invoice.txt")
@@ -75,8 +104,7 @@ class TestTaskGuardrail(unittest.TestCase):
         self.assertIn("claim_history", message)
 
     def test_rejected_for_invalid_json_or_an_invented_quote(self):
-        for name in DOCS:
-            self.use("mcp_x_parse_document", doc_id=name)
+        self.read_all()
         self.assertFalse(self.check("The claim looks fine.", must_read=list(DOCS))[0])
         invented = json.loads(json.dumps(GOOD))
         invented["findings"][0]["quotes"][0]["text"] = "Serial Number: FAKE-123"
@@ -85,8 +113,7 @@ class TestTaskGuardrail(unittest.TestCase):
         self.assertIn("not found", message)
 
     def test_accepted_when_tools_used_and_quotes_real(self):
-        for name in DOCS:
-            self.use("mcp_x_parse_document", doc_id=name)
+        self.read_all()
         ok, result = self.check("```json\n" + json.dumps(GOOD) + "\n```", must_read=list(DOCS))
         self.assertTrue(ok)
         self.assertTrue(json.loads(result)["flagged"])

@@ -9,8 +9,8 @@ from mcp.server.mcpserver.exceptions import ToolError
 
 from claimsleuth import config, db
 from claimsleuth.api import app as api
-from claimsleuth.mcp_server.server import (check_coverage, claim_history, compute_payout, parse_document,
-                                           search_policy, server)
+from claimsleuth.mcp_server.server import (check_coverage, check_invoice_totals, claim_history, compute_payout,
+                                           parse_document, search_policy, server)
 
 D = Decimal
 
@@ -38,6 +38,31 @@ class TestComputePayout(unittest.TestCase):
             compute_payout(D("-1"), D("0"), D("10"))
         with self.assertRaises(ToolError):
             compute_payout(D("10"), D("0"), D("10"), D("100"))
+
+
+class TestCheckInvoiceTotals(unittest.TestCase):
+
+    def test_match(self):
+        r = check_invoice_totals([D("60.00"), D("220.00")], D("280.00"))
+        self.assertTrue(r.matches)
+        self.assertEqual((r.computed_total, r.difference), (D("280.00"), D("0.00")))
+
+    def test_mismatch(self):                                         # eval claim E8: items $240.00, total $390.00
+        r = check_invoice_totals([D("120.00"), D("80.00"), D("40.00")], D("390.00"))
+        self.assertFalse(r.matches)
+        self.assertEqual((r.computed_total, r.stated_total, r.difference), (D("240.00"), D("390.00"), D("150.00")))
+
+    def test_rounding_to_cents(self):
+        r = check_invoice_totals([D("10.005"), D("0.004")], D("10.01"))      # 10.01 + 0.00 = 10.01
+        self.assertTrue(r.matches)
+        self.assertFalse(check_invoice_totals([D("19.99"), D("0.02")], D("20.00")).matches)   # off by one cent
+        self.assertEqual(check_invoice_totals([D("19.99"), D("0.02")], D("20.00")).difference, D("-0.01"))
+
+    def test_bad_input_is_an_error(self):
+        with self.assertRaises(ToolError):
+            check_invoice_totals([], D("10"))
+        with self.assertRaises(ToolError):
+            check_invoice_totals([D("-5")], D("10"))
 
 
 class TestCheckCoverage(unittest.TestCase):
@@ -111,9 +136,10 @@ class TestDocumentAndDatabaseTools(unittest.TestCase):
 
 class TestServer(unittest.IsolatedAsyncioTestCase):
 
-    async def test_exactly_five_tools(self):
+    async def test_exactly_six_tools(self):
         names = {t.name for t in await server.list_tools()}
-        self.assertEqual(names, {"parse_document", "search_policy", "check_coverage", "compute_payout", "claim_history"})
+        self.assertEqual(names, {"parse_document", "search_policy", "check_coverage", "compute_payout", "claim_history",
+                                 "check_invoice_totals"})
 
     def test_mcp_route_needs_the_secret(self):
         with mock.patch.object(config, "A2A_SHARED_SECRET", "s3cret"), TestClient(api.app) as client:

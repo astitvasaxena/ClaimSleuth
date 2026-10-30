@@ -3,7 +3,7 @@ Smoke test for the MCP server, run as a separate client process against a runnin
 
     python eval/mcp_smoke.py --url http://127.0.0.1:8000/mcp
 
-Checks: exactly five tools are listed; each one is called with real demo data and succeeds; a request
+Checks: exactly six tools are listed; each one is called with real demo data and succeeds; a request
 without the shared secret gets 401; a scanned PDF (no text layer) returns the "no text layer" error.
 The scanned-PDF check adds a small claim (SMOKE-SCAN) to the local database the app uses, so run it
 on the same machine as the app.
@@ -21,7 +21,8 @@ from pypdf import PdfWriter
 
 from claimsleuth import config, db
 
-EXPECTED = {"parse_document", "search_policy", "check_coverage", "compute_payout", "claim_history"}
+EXPECTED = {"parse_document", "search_policy", "check_coverage", "compute_payout", "claim_history",
+            "check_invoice_totals"}
 SCAN_CLAIM = "SMOKE-SCAN"
 
 
@@ -58,6 +59,7 @@ async def run(url: str, secret: str) -> list[str]:
         "compute_payout": {"repair_cost": "650.00", "deductible": "75.00", "coverage_limit": "800.00",
                            "depreciation_pct": "5"},
         "claim_history": {"serial": "REF-HC-99400-B", "claimant": "David Sterling", "claim_id": "CLM-2024-003"},
+        "check_invoice_totals": {"line_items": ["120.00", "80.00", "40.00"], "stated_total": "390.00"},
     }
     async with create_mcp_http_client(headers={"X-ClaimSleuth-Secret": secret}) as client:
         async with streamable_http_client(url, http_client=client) as (read, write):

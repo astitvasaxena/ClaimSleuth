@@ -1,5 +1,5 @@
 """
-The ClaimSleuth MCP server: five tools, served over streamable HTTP at /mcp inside the FastAPI app.
+The ClaimSleuth MCP server: six tools, served over streamable HTTP at /mcp inside the FastAPI app.
 
 The tools read documents and do the exact work (dates, money, database lookups). They never decide
 anything: the agents call them and interpret the results. Invalid input or a missing record raises
@@ -19,9 +19,11 @@ from pydantic import BaseModel
 
 from claimsleuth import config, db, tracing
 from claimsleuth.mcp_server.pdf import NoTextLayer, read_lines
+from claimsleuth.money import invoice_totals
 from claimsleuth.rag.retriever import retrieve
 
-TOOL_NAMES = ("parse_document", "search_policy", "check_coverage", "compute_payout", "claim_history")
+TOOL_NAMES = ("parse_document", "search_policy", "check_coverage", "compute_payout", "claim_history",
+              "check_invoice_totals")
 POLICY_DOC_PREFIX = "policy:"
 CENTS = Decimal("0.01")
 
@@ -72,6 +74,13 @@ class PastClaim(BaseModel):
     outcome: str
     amount: Optional[float]
     source: str
+
+
+class InvoiceTotals(BaseModel):
+    computed_total: Decimal
+    stated_total: Decimal
+    difference: Decimal          # stated_total - computed_total
+    matches: bool
 
 
 class HistoryResult(BaseModel):
@@ -245,6 +254,17 @@ def claim_history(serial: str, claimant: str, claim_id: Optional[str] = None) ->
     earlier = [d for d in days if d >= 0]
     return HistoryResult(past_claims=found, same_serial_count=same_serial,
                          last_claim_days_ago=min(earlier) if earlier else None)
+
+
+@server.tool()
+@traced
+def check_invoice_totals(line_items: list[Decimal], stated_total: Decimal) -> InvoiceTotals:
+    """Add up an invoice's line-item amounts (each rounded to cents) and compare the sum with the invoice's stated
+    total. difference = stated_total - computed_total; matches is true only when they agree to the cent."""
+    try:
+        return InvoiceTotals(**invoice_totals(line_items, stated_total))
+    except ValueError as exc:
+        raise ToolError(str(exc)) from exc
 
 
 def http_app():

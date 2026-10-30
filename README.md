@@ -17,7 +17,8 @@ claimsleuth-app  (FastAPI + Google ADK)                    claimsleuth-crew  (Cr
      Settlement-> compute_payout                      |
    Blackboard = ADK session state (bb_claim, bb_facts, bb_coverage, bb_fraud, bb_payout, bb_report)
    Callbacks on every agent: guardrails + metrics      |
-   MCP server at /mcp (5 tools) <----------------------'  (the crew calls parse_document, claim_history)
+   MCP server at /mcp (6 tools) <----------------------'  (the crew calls parse_document, check_invoice_totals,
+                                                           claim_history)
    SQLite: claims, documents, reports, reviews, runs, agent_metrics, past_claims
    OpenTelemetry trace across ADK -> A2A -> CrewAI -> MCP; hash-chained audit log
 ```
@@ -45,7 +46,7 @@ Without Docker: `pip install -r requirements.txt && pip install -e .`, start the
 | # | Requirement | Where | Proof |
 | --- | --- | --- | --- |
 | 1 | Blackboard + another messaging style | `agents/common.py` (`bb_*` keys), `agents/fraud_remote.py` (A2A request/reply) | `python -m claimsleuth.runner --claim CLM-2024-003` prints the blackboard |
-| 2 | MCP, at least two external tools | `mcp_server/server.py`: pypdf, RAG embeddings, date maths, calculator, SQLite | `python eval/mcp_smoke.py --url http://127.0.0.1:8000/mcp` |
+| 2 | MCP, at least two external tools | `mcp_server/server.py`, 6 tools: pypdf, RAG embeddings, date maths, payout calculator, invoice-totals check, SQLite | `python eval/mcp_smoke.py --url http://127.0.0.1:8000/mcp` |
 | 3 | Pydantic structured output | `models.py` (`FinalReport`), `submit_report` | `pytest tests/test_models.py` |
 | 4 | Hierarchical, parallel, sequential, compared | `agents/patterns.py` | `pytest -m live`; experiment A in `eval/results/summary.md` |
 | 5 | Monitoring callbacks, per-agent heat map | `callbacks/hooks.py`, `callbacks/metrics.py`, `charts.py` | `GET /api/runs/{run_id}/heatmap.png` after a run |
