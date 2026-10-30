@@ -1,0 +1,32 @@
+{
+  "commit": "8ca4763321bb501994a710687b74491b2d640f9b",
+  "model": "gemini-3.5-flash-lite",
+  "started_at": "2026-10-30T19:31:47+0530",
+  "target": "local: app and crew on this machine (127.0.0.1:8090), not deployed",
+  "claims": [
+    "E1",
+    "E3",
+    "E4",
+    "E6"
+  ],
+  "patterns": [
+    "sequential",
+    "parallel",
+    "hierarchical"
+  ],
+  "prompt_styles": [
+    "direct",
+    "react"
+  ],
+  "personas": [
+    "honest",
+    "abusive",
+    "vague",
+    "fraudster",
+    "injector"
+  ],
+  "runs_planned": {
+    "A": 24,
+    "B": 20
+  }
+}
