@@ -1,9 +1,0 @@
-==================================================
-         AUTHORISED REPAIR ESTIMATE
-==================================================
-Job No: JOB-49442
-Device: Corvex Book 15 Laptop
-Serial No: CVX-124079
-Diagnosis: Failed power management IC on the main board.
-Quote to follow after parts availability check.
-==================================================

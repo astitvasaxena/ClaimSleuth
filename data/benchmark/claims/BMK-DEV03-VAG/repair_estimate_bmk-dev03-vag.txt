@@ -1,9 +1,0 @@
-==================================================
-         AUTHORISED REPAIR ESTIMATE
-==================================================
-Job No: JOB-38964
-Device: Corvex Book 15 Laptop
-Serial No: CVX-139174
-Diagnosis: Failed power management IC on the main board.
-Estimated Cost: $559.00
-==================================================

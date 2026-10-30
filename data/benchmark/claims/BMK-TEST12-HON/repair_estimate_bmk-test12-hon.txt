@@ -1,9 +1,0 @@
-==================================================
-         AUTHORISED REPAIR ESTIMATE
-==================================================
-Job No: JOB-92995
-Device: Corvex Book 15 Laptop
-Serial No: CVX-569868
-Diagnosis: Water damage on keyboard and main board; liquid indicators tripped.
-Estimated Cost: $386.00
-==================================================
