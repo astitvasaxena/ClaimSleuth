@@ -155,3 +155,7 @@ Price, from Google's pricing page (https://ai.google.dev/gemini-api/docs/pricing
 - `README.md` rewritten as one page; `docs/CREWAI.md` and `docs/RAG.md` deleted (out of date). The README has no evaluation numbers yet, because there are none.
 
 `pytest`: 87 passed, 9 live tests deselected.
+
+**Step 9 shared part, check (2026-10-30, Docker 29.8.0, Compose 5.5.1, no model calls):** `docker compose -f deploy/docker-compose.yml build` built `claimsleuth-app` (606 MB, PyTorch 2.15.0+cpu) and `claimsleuth-crew` (1.55 GB). `APP_HOST_PORT=8095 docker compose ... up -d`: both containers healthy; `/healthz` answered on both; inside the app container `search_policy` ranked "2. Deductible" first with `embedding:sentence-transformers/all-MiniLM-L6-v2` (the model loaded offline, no TF-IDF fallback); the crew container read both Scenario 3 documents from `http://app:8000/mcp` with the secret; the app container fetched the crew's agent card from `http://crew:8101`; `/api/claims` without a token got `401`; a row written before `docker compose restart app` was still there after it (named volume). Not done: deployment to a cloud target (step 9 options A or B).
+
+**Measured per run so far (`gemini-3.5-flash-lite`, hierarchical, direct):** run `6e93f40cc2ce` (Scenario 3, before the `record_facts` fix) 22 model calls, 75,756 + 5,408 tokens, 113 s, $0.0362 at the paid price; runs `cfdad4e7b00d` and `fd1de031e1da` (uploaded PDF claim) 21 calls each, 52,587 + 2,308 and 53,286 + 2,462 tokens, 69 s and 92 s, $0.0215 and $0.0221.
