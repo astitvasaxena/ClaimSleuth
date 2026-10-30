@@ -1,23 +1,13 @@
-# Separate environment for the CrewAI forensics A2A service (src/crew_service/).
-# Kept apart from requirements.txt because crewai pins mcp<2, pydantic<2.13 and openai<3,
-# which conflict with the main app (MCP SDK 2.x, pydantic 2.13).
+# The CrewAI fraud crew runs in its own environment, because crewai 1.15.30 pins mcp<2 and pydantic<2.13,
+# which conflict with the main app (MCP SDK 2.3, pydantic 2.13).
 #
 #   python -m venv .venv-crewai
-#   .venv-crewai/Scripts/python -m pip install -r requirements-crewai-service.txt     (Windows)
-#   .venv-crewai/bin/python -m pip install -r requirements-crewai-service.txt         (macOS/Linux)
-#   .venv-crewai/Scripts/python -m src.crew_service.a2a_server --port 8101 --env-file .env
-#   (add --llm openrouter/nvidia/nemotron-3.5-super-vl:free to use NVIDIA Nemotron instead)
+#   .venv-crewai/Scripts/python -m pip install -r requirements-crewai-service.txt     (Windows; bin/ on Linux)
+#   .venv-crewai/Scripts/python -m pip install -e . --no-deps                         (the claimsleuth package)
+#   .venv-crewai/Scripts/python -m claimsleuth.crew.a2a_server --port 8101
 #
-# The CrewAI agent's LLM is reached through CrewAI's OpenAI-style providers (the openai SDK
-# comes with crewai), so neither route needs an extra package:
-#   - default (--llm auto): Gemini through its OpenAI-compatible endpoint (GOOGLE_API_KEY);
-#   - optional, explicit (--llm openrouter/<model id>): OpenRouter (OPENROUTER_API_KEY).
-# CrewAI's native Gemini provider would instead need crewai[google-genai] (google-genai~=1.65);
-# it is not installed. See docs/CREWAI.md.
-#
-# Verified 2026-10-27 on Python 3.12.10 (pip check clean). Installs ~900 MB (chromadb,
-# onnxruntime, pyarrow, lancedb come with crewai).
-crewai==1.15.30
+# crewai[google-genai] is CrewAI's native Gemini provider (google-genai 1.65). Verified 2026-10-30, pip check clean.
+crewai[google-genai]==1.15.30
 a2a-sdk[http-server]==1.3.0
 python-dateutil>=2.8.2
 uvicorn>=0.28.0

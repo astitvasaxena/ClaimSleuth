@@ -29,6 +29,17 @@ ADJUSTER_TOKEN = os.environ.get("ADJUSTER_TOKEN", "")
 # Human review: payouts above this need a full review (USD).
 FULL_REVIEW_THRESHOLD = 150.0
 
+# Where the app listens, and where agents reach its MCP endpoint and the CrewAI service.
+PORT = int(os.environ.get("PORT", "8000"))
+APP_URL = (os.environ.get("APP_URL") or f"http://127.0.0.1:{PORT}").rstrip("/")
+MCP_URL = f"{APP_URL}/mcp"
+CREW_URL = (os.environ.get("CREW_URL") or "http://127.0.0.1:8101").rstrip("/")
+
+# Limits per run.
+MAX_LLM_CALLS = 30
+RUN_TIMEOUT_S = 15 * 60
+MODEL_RETRY_ATTEMPTS = 5          # retries on 429/5xx from the model API (Gemini returned 503s during the build)
+
 # Paths. DATA_DIR holds everything the app writes; override it in containers.
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR / "data" / "runtime"))
 POLICIES_FILE = BASE_DIR / "configs" / "policies.json"

@@ -10,5 +10,5 @@ os.environ["CLAIMSLEUTH_AUDIT_LOG_DIR"] = tempfile.mkdtemp(prefix="claimsleuth_t
 os.environ["CLAIMSLEUTH_TRACES_DIR"] = tempfile.mkdtemp(prefix="claimsleuth_test_traces_")
 os.environ["CLAIMSLEUTH_RAG_INDEX_DIR"] = tempfile.mkdtemp(prefix="claimsleuth_test_rag_index_")
 
-# tests/crew_service needs crewai, which lives only in .venv-crewai.
-collect_ignore_glob = ["crew_service/*"]
+
+

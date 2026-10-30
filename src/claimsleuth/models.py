@@ -26,12 +26,22 @@ class Facts(BaseModel):
     missing: list[str] = []
 
 
+class PolicyTerms(BaseModel):
+    """The policy's money and period terms, as stated in its wording (each backed by a quote)."""
+    warranty_months: int
+    deductible: Decimal
+    coverage_limit: Decimal
+    depreciation_pct: Decimal = Decimal("0")
+    quotes: list[Quote] = []
+
+
 class Coverage(BaseModel):
     covered: bool
     within_window: bool
     exclusion: Optional[str] = None
     clause: Quote
     days_since_purchase: int
+    terms: Optional[PolicyTerms] = None
 
 
 class Payout(BaseModel):
