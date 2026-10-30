@@ -39,3 +39,6 @@ data/rag/index/
 
 # Machine-specific helper scripts
 powershell.bat
+
+# Editable-install metadata
+*.egg-info/
