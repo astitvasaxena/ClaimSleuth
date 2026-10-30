@@ -9,6 +9,7 @@ summary heat map (agents x configurations, mean seconds), heatmaps/<run_id>.png,
 """
 import argparse
 import csv
+import json
 import statistics
 import sys
 import time
@@ -109,7 +110,10 @@ def write_summary(rows: list[dict], charts: list[str], out: Path, heatmaps: int)
     price = config.PRICES.get(config.GEMINI_MODEL)
     models = sorted({r["model"] for r in rows})
     targets = sorted({r["target"] for r in rows})
+    info_path = out / "run_info.json"
+    info = json.loads(info_path.read_text(encoding="utf-8")) if info_path.is_file() else {}
     lines = ["# ClaimSleuth evaluation", "",
+             f"Commit: {info.get('commit', 'not recorded')}. Evaluation started {info.get('started_at', 'not recorded')}.", "",
              f"Model: {', '.join(models)}. Target: {', '.join(targets)}. Runs: {len(rows)} "
              f"(experiment A {len(a)} of 24, experiment B {len(b)} of 20; claims E1, E3, E4, E6). Summary written {time.strftime('%Y-%m-%d')}; "
              f"runs finished {min(r['finished_at'] for r in rows)[:10]} to {max(r['finished_at'] for r in rows)[:10]}.", ""]

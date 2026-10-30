@@ -16,6 +16,7 @@ the runner refuses to continue if the server or an existing row uses another mod
 import argparse
 import csv
 import json
+import subprocess
 import sys
 import time
 from pathlib import Path
@@ -27,13 +28,19 @@ from claimsleuth.db import PERSONAS, eval_claim_id
 
 RESULTS = Path(__file__).resolve().parent / "results"
 RUNS_CSV = RESULTS / "runs.csv"
+RUN_INFO = RESULTS / "run_info.json"
+RETRIES_CSV = RESULTS / "rate_limit_retries.csv"
+# The code every run must come from: the app, the agents, the crew, the evaluation scripts and the data they read.
+CODE_PATHS = ["src", "configs", "data/sample_claims", "data/rag/policies", "data/past_claims.json", "eval/claims",
+              "eval/personas", "eval/run_eval.py", "requirements.txt", "requirements-crewai-service.txt"]
+REPO = Path(__file__).resolve().parents[1]
 LABELS = json.loads((Path(__file__).resolve().parent / "claims" / "labels.json").read_text(encoding="utf-8"))
 PACKETS = sorted(LABELS)
 EVAL_CLAIMS = ("E1", "E3", "E4", "E6")              # the claims the 44-run evaluation uses
 PATTERNS = ("sequential", "parallel", "hierarchical")
 STYLES = ("direct", "react")
 AGENTS = ("claim_manager", "evidence_agent", "policy_agent", "settlement_agent", "fraud_crew", "forensics", "history")
-COLUMNS = (["run_id", "experiment", "claim", "persona", "pattern", "prompt_style", "model", "target", "status", "error",
+COLUMNS = (["run_id", "experiment", "claim", "persona", "pattern", "prompt_style", "model", "commit", "target", "status", "error",
             "expected", "decision", "correct", "fraud_flagged", "payout", "seconds", "rate_limit_wait_s",
             "prompt_tokens", "completion_tokens", "cost_usd", "llm_calls", "tool_calls", "errors", "guardrail_hits",
             "hits_injection", "hits_abuse", "finished_at"]
@@ -70,6 +77,49 @@ def append_row(row: dict) -> None:
         if new:
             writer.writeheader()
         writer.writerow({c: row.get(c, "") for c in COLUMNS})
+
+
+def git(*args: str) -> str:
+    return subprocess.run(["git", *args], cwd=REPO, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def code_commit() -> str:
+    """The commit the evaluation runs on. Refuses if the code (CODE_PATHS) has uncommitted changes."""
+    dirty = git("status", "--porcelain", "--", *CODE_PATHS)
+    if dirty:
+        sys.exit(f"uncommitted changes in the evaluated code; commit or revert them first:\n{dirty}")
+    return git("rev-parse", "HEAD")
+
+
+def check_run_info(commit: str, target: str) -> dict:
+    """First start: record the commit, model and start time. Later starts: the code must be the recorded commit's."""
+    if RUN_INFO.is_file():
+        info = json.loads(RUN_INFO.read_text(encoding="utf-8"))
+        changed = git("diff", "--name-only", info["commit"], commit, "--", *CODE_PATHS)
+        if changed or info["model"] != config.GEMINI_MODEL:
+            sys.exit(f"the evaluation started on commit {info['commit'][:10]} with {info['model']}; the code or model "
+                     f"has changed since ({changed or config.GEMINI_MODEL}). Not mixing.")
+        return info
+    info = {"commit": commit, "model": config.GEMINI_MODEL, "started_at": time.strftime("%Y-%m-%dT%H:%M:%S%z"),
+            "target": target, "claims": list(EVAL_CLAIMS), "patterns": list(PATTERNS), "prompt_styles": list(STYLES),
+            "personas": list(PERSONAS), "runs_planned": {"A": len(plan_a()), "B": len(EVAL_CLAIMS) * len(PERSONAS)}}
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    RUN_INFO.write_text(json.dumps(info, indent=2) + "\n", encoding="utf-8")
+    return info
+
+
+def log_retry(planned: dict, outcome: dict, waited_s: int, kind: str) -> None:
+    """A run cut off by a rate limit is not a result; it is logged here, and redone."""
+    RESULTS.mkdir(parents=True, exist_ok=True)
+    new = not RETRIES_CSV.is_file()
+    with RETRIES_CSV.open("a", encoding="utf-8", newline="") as f:
+        writer = csv.writer(f)
+        if new:
+            writer.writerow(["at", "experiment", "claim", "persona", "pattern", "prompt_style", "discarded_run_id",
+                             "kind", "wait_before_retry_s", "error"])
+        writer.writerow([time.strftime("%Y-%m-%dT%H:%M:%S"), planned["experiment"], planned["claim"], planned["persona"],
+                         planned["pattern"], planned["prompt_style"], outcome["run"]["id"], kind, waited_s,
+                         (outcome["run"]["error"] or "")[:300]])
 
 
 def best_config(rows: list[dict]) -> tuple[str, str]:
@@ -130,7 +180,7 @@ class Client:
         return {"result": result, **details.json()}
 
 
-def to_row(planned: dict, outcome: dict, waited: float, target: str) -> dict:
+def to_row(planned: dict, outcome: dict, waited: float, target: str, commit: str = "") -> dict:
     run, report, result = outcome["run"], outcome["report"], outcome["result"]
     label = LABELS[planned["claim"]]
     decision = report["decision"] if report else ""
@@ -142,7 +192,7 @@ def to_row(planned: dict, outcome: dict, waited: float, target: str) -> dict:
     hits = report["guardrail_hits"] if report else []
     agents = {a["agent"]: a for a in outcome["agents"]}
     totals = {m: sum(a[m] for a in outcome["agents"]) for m in ("llm_calls", "tool_calls", "errors", "guardrail_hits")}
-    row = {**planned, "run_id": run["id"], "model": run["model"], "target": target, "status": run["status"],
+    row = {**planned, "run_id": run["id"], "model": run["model"], "commit": commit, "target": target, "status": run["status"],
            "error": (run["error"] or "")[:300], "expected": "|".join(label["accepted"]), "decision": decision,
            "correct": correct, "fraud_flagged": flagged, "payout": payout, "seconds": run["seconds"],
            "rate_limit_wait_s": round(waited + float(run.get("wait_seconds") or 0), 1), "prompt_tokens": run["prompt_tokens"],
@@ -180,6 +230,9 @@ def main() -> int:
         return 0
     if not config.ADJUSTER_TOKEN:
         sys.exit("ADJUSTER_TOKEN is not set")
+    commit = code_commit()
+    info = check_run_info(commit, args.target)
+    print(f"evaluation on commit {info['commit'][:10]}, model {info['model']}, started {info['started_at']}")
     client = Client(args.url, config.ADJUSTER_TOKEN)
     server_model = client.model()
     if server_model != config.GEMINI_MODEL:
@@ -192,16 +245,18 @@ def main() -> int:
             if outcome["run"]["status"] == "completed" or not is_rate_limit(error):
                 break
             if is_daily_quota(error):
+                log_retry(p, outcome, 0, "daily")
                 print(f"daily quota reached, resume tomorrow. {len(read_rows())} runs are saved in {RUNS_CSV}; this run "
                       f"({p['claim']} {p['persona']} {p['pattern']}/{p['prompt_style']}) will be redone. [{error[:200]}]")
                 return 3
             if attempt == len(BACKOFF_S):
                 print(f"stopping: still rate limited after {len(BACKOFF_S)} waits ({error[:160]}). Finished runs are kept.")
                 return 2
+            log_retry(p, outcome, BACKOFF_S[attempt], "per-minute")
             print(f"  per-minute rate limit; waiting {BACKOFF_S[attempt]} s (not counted as agent time)")
             time.sleep(BACKOFF_S[attempt])
             waited += BACKOFF_S[attempt]
-        row = to_row(p, outcome, waited, args.target)
+        row = to_row(p, outcome, waited, args.target, info["commit"])
         append_row(row)
         print(f"[{count}/{len(todo)}] {p['claim']} {p['persona']} {p['pattern']}/{p['prompt_style']}: "
               f"{row['status']} {row['decision'] or '-'} correct={row['correct']} {row['seconds']} s "
