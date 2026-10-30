@@ -52,3 +52,18 @@ class TestWaitsExcluded(unittest.TestCase):
         rec.stop("fraud_crew")
         self.assertAlmostEqual(rec.rows["fraud_crew"].seconds, 0.08, delta=0.05)
         self.assertEqual(rec.totals()["rate_limit_wait_s"], 0.12)
+
+
+class TestSharedSlot(unittest.TestCase):
+
+    def test_rate_slot_needs_the_secret_and_paces(self):
+        from fastapi.testclient import TestClient
+        from claimsleuth.api import app as api
+        with mock.patch.object(config, "A2A_SHARED_SECRET", "s3cret"), mock.patch.object(config, "MODEL_MAX_RPM", 600), \
+                TestClient(api.app) as client:
+            ratelimit._next_slot = 0.0
+            self.assertEqual(client.post("/internal/rate-slot").status_code, 401)
+            first = client.post("/internal/rate-slot", headers={"X-ClaimSleuth-Secret": "s3cret"}).json()["waited"]
+            second = client.post("/internal/rate-slot", headers={"X-ClaimSleuth-Secret": "s3cret"}).json()["waited"]
+            self.assertEqual(first, 0.0)
+            self.assertGreater(second, 0.05)                    # the second slot waited for the first one's interval

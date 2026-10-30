@@ -1,8 +1,9 @@
 """
 Model rate limits on the free tier.
 
-- pace(): spaces model calls to config.MODEL_MAX_RPM per process and returns how long it waited, so that wait
-  can be kept out of the agent timings. The app (ADK) and the crew service (CrewAI) each pace their own calls.
+- pace(): spaces model calls to config.MODEL_MAX_RPM and returns how long it waited, so that wait can be kept
+  out of the agent timings. The free-tier limit counts the app's and the crew's calls together, so there is one
+  pacer, in the app: the crew service asks for its slots at /internal/rate-slot (request_slot()).
 - classify(): tells a daily quota error from a per-minute one, from the full error text.
 """
 import asyncio
@@ -16,6 +17,7 @@ from claimsleuth import config
 DAILY, MINUTE = "RATE_LIMIT_DAILY", "RATE_LIMIT_MINUTE"
 _lock = threading.Lock()
 _next_slot = 0.0
+SERVES_SLOTS = False          # True inside the app process, which owns the pacer
 
 
 def _reserve() -> float:
@@ -40,6 +42,28 @@ def pace_sync() -> float:
     if delay > 0:
         time.sleep(delay)
     return delay
+
+
+def request_slot() -> float:
+    """Outside the app (the crew service, or a run started from a script or pytest): wait for a model-call slot
+    from the app's pacer; returns the seconds spent waiting. Only when no app is running at all (offline tests)
+    does it pace locally."""
+    import httpx
+    started = time.monotonic()
+    try:
+        response = httpx.post(f"{config.APP_URL}/internal/rate-slot",
+                              headers={"X-ClaimSleuth-Secret": config.A2A_SHARED_SECRET}, timeout=300)
+    except httpx.ConnectError:
+        return pace_sync()
+    response.raise_for_status()
+    return min(time.monotonic() - started, float(response.json()["waited"]) + 1.0)
+
+
+async def acquire() -> float:
+    """Wait for a model-call slot from the one pacer: directly in the app, over HTTP from anywhere else."""
+    if SERVES_SLOTS:
+        return await pace()
+    return await asyncio.to_thread(request_slot)
 
 
 def classify(text: Optional[str]) -> Optional[str]:

@@ -138,7 +138,7 @@ def record_crew_metrics(rec: metrics.RunRecorder, crew: dict) -> None:
 async def before_model(callback_context, llm_request) -> None:
     state, agent = callback_context.state, callback_context.agent_name
     rec = _recorder(callback_context)
-    waited = await ratelimit.pace()
+    waited = await ratelimit.acquire()
     if rec:
         rec.add_wait(agent, waited)
         await rec.emit(agent, "model_call", f"waited {waited:.1f} s for the rate limit" if waited > 0.05 else "")

@@ -7,11 +7,12 @@ They need GOOGLE_API_KEY, the app running at APP_URL (for /mcp) and the CrewAI s
 The three demo scenarios in all three patterns (step 4: 9 runs), and Scenario 3's fraud flag (step 5).
 """
 import asyncio
+import json
 
 import httpx
 import pytest
 
-from claimsleuth import config, runner
+from claimsleuth import config, db, runner
 
 pytestmark = pytest.mark.live
 
@@ -33,12 +34,21 @@ def need_services():
         pytest.skip("GOOGLE_API_KEY is not set")
     if not services_up():
         pytest.skip(f"start the app ({config.APP_URL}) and the CrewAI service ({config.CREW_URL}) first")
+    db.init()                                         # the test run's own database (runs and reports are stored here)
 
 
 @pytest.mark.parametrize("pattern", ["sequential", "parallel", "hierarchical"])
 @pytest.mark.parametrize("claim_id", sorted(EXPECTED))
 def test_demo_decision(claim_id, pattern):
     result = asyncio.run(runner.run_claim(claim_id, pattern, "direct"))
+    report = result["report"] or {}
+    print("\nLIVE_RUN " + json.dumps({
+        "claim": claim_id, "pattern": pattern, "run_id": result["run_id"], "status": result["status"],
+        "error": result["error"], "decision": report.get("decision"), "review": report.get("review"),
+        "payout": (report.get("payout") or {}).get("amount"), "fraud_flagged": (report.get("fraud") or {}).get("flagged"),
+        "seconds": result["seconds"], "rate_limit_wait_s": result.get("rate_limit_wait_s"),
+        "prompt_tokens": result.get("prompt_tokens"), "completion_tokens": result.get("completion_tokens"),
+        "cost_usd": result.get("cost_usd"), "trace_id": result["trace_id"], "metrics": result.get("metrics")}))
     assert result["status"] == "completed", result["error"]
     report = result["report"]
     decisions, payout, fraud = EXPECTED[claim_id]

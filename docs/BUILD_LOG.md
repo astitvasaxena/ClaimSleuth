@@ -175,3 +175,29 @@ From `agent_metrics` (runs `cfdad4e7b00d` and `fd1de031e1da`, hierarchical, abou
 **Change made (does not change what any agent sees or does):** ADK passed every MCP result to the model twice, as indented JSON text in `content` and again as `structuredContent`. `after_tool_callback` now passes the validated structured result once (`{"result": ...}`). Measured on the real `McpToolset` output for a typical run's calls (offline, no model calls): `parse_document` 2,654 -> 1,025 characters, `search_policy` 3,764 -> 1,433 and 3,020 -> 1,157, `check_coverage` 366 -> 138, `compute_payout` 611 -> 234, about 61-62% less per result; the Policy agent's three results go from 7,150 to 2,728 characters per copy, and it re-sends them on every later call. The crew is not affected (it uses CrewAI's own MCP client). The live per-agent input tokens after the change come from the step 4 check below.
 
 **Suggested, not applied (it would change behaviour):** let the Policy agent search for several topics in one query instead of "one topic at a time". It made 2 to 4 searches and 5 model calls per run; one fewer model call saves about 4,000 input tokens. This changes the agent's instructions, so it waits for a decision.
+
+### One pacer for the app and the crew (2026-10-30)
+
+The first `pytest -m live` round failed 5 of 9 runs with `RATE_LIMIT_MINUTE`. Google's 429 said: "Quota exceeded for metric: generativelanguage.googleapis.com/generate_content_free_tier_requests, limit: 15, model: gemini-3.5-flash-lite, description: Generate content requests per minute limit exceeded on Free Tier." The app and the crew each paced themselves at 15 per minute, but the limit counts both together. Now the app owns the only pacer (`ratelimit.pace()`, at `MODEL_MAX_RPM = 14`, one below the limit). The crew service and any run started outside the app (a script, pytest) wait for a slot at `POST /internal/rate-slot` (shared-secret protected). The failed rounds spent no more than 3 model calls each.
+
+### Step 4 check: `pytest -m live` (9 runs, `gemini-3.5-flash-lite`, direct prompts)
+
+The 4 runs that passed in the first round were kept; the 5 rate-limited ones were rerun with the shared pacer. No rate-limit failures in the rerun.
+
+| Claim | Pattern | Decision | Expected | Fraud flagged | Agent seconds | Wait (s) | Model calls | Input + output tokens | Cost (USD) |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| CLM-2024-001 | sequential | approve, $251.00 | approve, $251.00 | no | 86.4 | 21.2 | 17 | 40,921 + 1,927 | 0.0171 |
+| CLM-2024-001 | parallel | approve, $251.00 | approve, $251.00 | no | 31.1 | 21.2 | 16 | 38,640 + 2,189 | 0.0171 |
+| CLM-2024-001 | hierarchical | **request_evidence** | approve, $251.00 | **yes (wrong)** | 69.6 | 28.4 | 17 | 39,941 + 2,352 | 0.0179 |
+| CLM-2024-002 | sequential | reject | reject | no | 65.3 | 11.8 | 15 | 35,758 + 1,905 | 0.0155 |
+| CLM-2024-002 | parallel | reject | reject | no | 28.7 | 23.0 | 16 | 39,089 + 1,924 | 0.0165 |
+| CLM-2024-002 | hierarchical | reject | reject | no | 72.1 | 20.8 | 17 | 38,894 + 1,931 | 0.0165 |
+| CLM-2024-003 | sequential | request_evidence | reject or request_evidence + flag | yes | 86.6 | 13.8 | 18 | 44,891 + 2,709 | 0.0202 |
+| CLM-2024-003 | parallel | request_evidence | reject or request_evidence + flag | yes | 37.4 | 54.4 | 18 | 41,486 + 2,416 | 0.0185 |
+| CLM-2024-003 | hierarchical | request_evidence | reject or request_evidence + flag | yes | 66.6 | 12.8 | 17 | 40,734 + 2,679 | 0.0189 |
+
+Result: 8 of 9 correct. Costs are what the runs would cost at the paid price; on the free tier they were free.
+
+**The one wrong run (CLM-2024-001, hierarchical):** the CrewAI Forensics analyst reported a high-severity `amount_mismatch` with no quotes; its own explanation says the amounts match ("1099.00 + 87.92 = 1186.92, which actually matches"). The crew's task guardrail let it through because it only checks quotes that are present. The plan says every finding quotes a document line, so this is a gap in the guardrail. The analyst also did arithmetic itself. Not fixed yet; see the proposal in the status report.
+
+**Input tokens after sending tool results once** (mean per model call over these 9 runs): Policy 3,496 (before: 4,106 and 4,153 in the two earlier hierarchical runs), Evidence 1,884 (before: 2,289 and 2,297), Claim Manager 2,083, Settlement 2,523, Forensics 1,717, History 1,429. Mean per run: 40,039 input tokens and 16.8 model calls (before: 52,587 and 53,286 tokens, 21 calls; the earlier runs were a different claim, so the comparison is approximate). Mean wait for the rate limit: 23.0 s per run, not counted in agent time.

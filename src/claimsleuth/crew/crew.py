@@ -79,7 +79,7 @@ WAITS: dict[str, float] = defaultdict(float)
 
 
 def _pace_llm_call(context) -> None:
-    waited = ratelimit.pace_sync()
+    waited = ratelimit.request_slot()          # the app's pacer covers the app's and the crew's calls together
     if waited and context.agent is not None:
         with _TOOL_USE_LOCK:
             WAITS[str(context.agent.id)] += waited

@@ -16,7 +16,7 @@ from typing import Optional
 from fastapi import FastAPI, File, Form, HTTPException, Request, UploadFile
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 
-from claimsleuth import audit, charts, config, db, tracing
+from claimsleuth import audit, charts, config, db, ratelimit, tracing
 from claimsleuth.agents.common import PROMPT_STYLES
 from claimsleuth.agents.patterns import PATTERNS
 from claimsleuth.api.jobs import AlreadyRunning, Jobs
@@ -50,6 +50,7 @@ jobs: Optional[Jobs] = None
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     global jobs
+    ratelimit.SERVES_SLOTS = True          # this process owns the pacer for every model call
     db.init()
     jobs = Jobs()
     mcp_endpoint.app = mcp_server.http_app()
@@ -74,6 +75,8 @@ def token_ok(header: Optional[str]) -> bool:
 @app.middleware("http")
 async def guard(request: Request, call_next):
     path = request.url.path
+    if path == "/internal/rate-slot" and not secret_ok(request.headers.get(SECRET_HEADER)):
+        return JSONResponse(status_code=401, content={"detail": f"missing or wrong {SECRET_HEADER} header"})
     if path == "/mcp" or path.startswith("/mcp/"):
         if not secret_ok(request.headers.get(SECRET_HEADER)):
             return JSONResponse(status_code=401, content={"detail": f"missing or wrong {SECRET_HEADER} header"})
@@ -97,6 +100,12 @@ async def guard(request: Request, call_next):
 @app.get("/healthz")
 def healthz():
     return {"status": "ok", "model": config.GEMINI_MODEL, "model_configured": config.model_configured()}
+
+
+@app.post("/internal/rate-slot")
+async def rate_slot():
+    """The crew service's model calls wait here for a slot from the same pacer as the app's own calls."""
+    return {"waited": round(await ratelimit.pace(), 3)}
 
 
 @app.get("/", response_class=HTMLResponse)

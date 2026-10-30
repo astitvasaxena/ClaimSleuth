@@ -41,9 +41,12 @@ MAX_LLM_CALLS = 30
 RUN_TIMEOUT_S = 15 * 60
 MODEL_CALL_TIMEOUT_S = 120        # one model request; a stalled call fails instead of hanging the run
 MODEL_RETRY_ATTEMPTS = 5          # retries on 5xx from the model API (Gemini returned 503s during the build)
-# Free-tier requests per minute for the pinned model, as shown in Google AI Studio. Model calls are spaced to
-# this rate (measured waits, kept out of agent timings); a 429 is not retried inside a run.
-MODEL_MAX_RPM = 15
+# Free-tier requests per minute for the pinned model: Google's 429 response gave "limit: 15" for
+# gemini-3.5-flash-lite (2026-10-30). The app and the crew share one pacer (the crew asks the app for a slot),
+# spacing every model call to MODEL_MAX_RPM, one below the limit as a margin. Waits are measured and kept out of
+# agent timings; a 429 is not retried inside a run.
+MODEL_RPM_LIMIT = 15
+MODEL_MAX_RPM = MODEL_RPM_LIMIT - 1
 
 # Model prices in USD per million tokens, from the provider's price list, with the date they were read.
 # Cost is reported only for models listed here; for any other model it is "not measured".
