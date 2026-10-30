@@ -210,3 +210,13 @@ The step 4 check had 8 of 9 runs correct. The wrong one (CLM-2024-001, hierarchi
 2. **A sixth MCP tool, `check_invoice_totals(line_items, stated_total)`**, returning `{computed_total, stated_total, difference, matches}` with `Decimal` amounts rounded to cents (`src/claimsleuth/money.py`, shared with the guardrail). The Forensics analyst gets it (with `parse_document`) and is told to call it for every document with line items and a total, never to add amounts itself. A finding about amounts (kind containing amount, total, sum, cost or price) is accepted only if one of the analyst's `check_invoice_totals` calls returned `matches = false`; the guardrail recomputes that from the recorded call with the same function. Tests: `tests/test_mcp_tools.py::TestCheckInvoiceTotals` (match, mismatch, rounding, bad input), `test_exactly_six_tools`, and `test_amount_finding_needs_a_totals_check_that_found_a_difference`. `eval/mcp_smoke.py` now expects six tools and calls the new one.
 
 The MCP server therefore has **6 tools** from here on (the step 3 entry above describes the five it had then). README and the implementation plan notes (`Documents/ClaimSleuth Implementation Plan for Claude Code.md`, untracked) say 6 tools.
+
+**Live check of the two fixes (2026-10-30, `gemini-3.5-flash-lite`, hierarchical, direct prompts; 3 runs):**
+
+| Claim | Expected | Result | Fraud findings | `check_invoice_totals` calls | Model calls | Agent s / wait s | Tokens (in + out) |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| CLM-2024-001 (run `396075a5d931`) | approve, $251.00, not flagged | approve, $251.00, full review, not flagged | none | 2 (no mismatch) | 21 | 57.4 / 39.9 | 49,879 + 2,484 |
+| CLM-2024-003 (run `cd13c93dc799`) | flagged, findings quoted | request_evidence, flagged | serial_number_mismatch (high; invoice line 9 and repair estimate line 9 quoted); serial used by a different claimant (high; quoted) | 2 | 18 | 54.2 / 27.8 | 42,457 + 2,636 |
+| EVAL-E8-honest (run `b252713b8238`) | amount_mismatch found by the tool | request_evidence, flagged | amount_mismatch (high): "The stated total due ($390.00) does not match the sum of the line items ($240.00)", lines 8 to 11 of `repair_invoice_E8.pdf` quoted | 1 | 18 | 48.1 / 30.7 | 41,753 + 2,344 |
+
+All 3 as expected.
