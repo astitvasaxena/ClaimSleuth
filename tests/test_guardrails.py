@@ -141,9 +141,11 @@ class TestToolCallbacks(unittest.TestCase):
         self.assertIn("not allowed", refused["error"])
 
     def test_tool_exception_becomes_an_error_result(self):
-        result = run(hooks.on_tool_error(SimpleNamespace(name="record_facts"), {}, ctx(state_for()), ValueError("bad")))
+        tool, context = SimpleNamespace(name="record_facts"), ctx(state_for())
+        result = run(hooks.on_tool_error(tool, {}, context, ValueError("bad")))
         self.assertIn("record_facts failed", result["error"])
-        self.assertEqual(self.rec.rows["evidence_agent"].errors, 1)
+        run(hooks.after_tool(tool, {}, context, result))                # ADK passes the error on to after_tool
+        self.assertEqual(self.rec.rows["evidence_agent"].errors, 1)     # counted once
 
 
 class TestOutputGuardrail(unittest.TestCase):

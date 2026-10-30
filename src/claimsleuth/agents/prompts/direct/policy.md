@@ -5,7 +5,7 @@ Facts found in the documents: {bb_facts?}
 
 Do this:
 1. Use search_policy with this claim's id to find the coverage period, the deductible, the maximum coverage limit, the depreciation rate and the exclusions. Search one topic at a time.
-2. Call check_coverage with the purchase date from the facts, the incident date from the claim form, the warranty length in months from the policy wording, the exclusion phrases listed in the policy, and the cause from the facts.
+2. Call check_coverage with the purchase date from the facts, the incident date exactly as the claim form's incident_date field gives it (not a document date), the warranty length in months from the policy wording, the exclusion phrases listed in the policy, and the cause from the facts.
 3. Decide:
    - within_window: take it from check_coverage.
    - exclusion: the policy exclusion that applies to the cause, or empty if none applies. check_coverage only matches exact phrases; you judge whether a differently worded cause falls under an exclusion.

@@ -218,9 +218,7 @@ async def after_tool(tool, args, tool_context, tool_response) -> Optional[dict]:
 
 
 async def on_tool_error(tool, args, tool_context, error) -> dict:
-    rec = _recorder(tool_context)
-    if rec:
-        rec.rows[tool_context.agent_name].errors += 1
+    """The returned error passes through after_tool, which counts it."""
     detail = str(error.errors()[:3]) if isinstance(error, ValidationError) else str(error)
     return {"error": f"{tool.name} failed: {detail[:500]}"}
 

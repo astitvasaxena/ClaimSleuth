@@ -71,3 +71,39 @@ Differences from the plan:
 Deleted: `src/mcp/remote_server.py` (replaced). `src/tools/` stays until step 5, because the old CrewAI service still imports it.
 
 **Check (2026-10-30):** `python eval/mcp_smoke.py --url http://127.0.0.1:8090/mcp` (separate client process, `mcp.client.streamable_http`, against the running app on port 8090, because port 8000 was used by another program on this machine) printed PASS: exactly five tools listed, each called successfully with demo data, a scanned PDF returned "no text layer: scanned document, OCR not supported", and a request without the secret got `401`. `pytest`: 49 passed, including `tests/test_mcp_tools.py` (normal, edge and error cases for each tool and the `401` checks).
+
+## Step 4: ADK agents and the three patterns
+
+Four `LlmAgent`s (`src/claimsleuth/agents/`: `evidence.py`, `policy.py`, `settlement.py`, `manager.py`), instructions loaded from `prompts/direct/` and `prompts/react/` (the ReAct style also sets `PlanReActPlanner()`). Each specialist gets only its own MCP tools (`McpToolset` + `StreamableHTTPConnectionParams`, `tool_filter`, secret header, `header_provider` adding the W3C `traceparent`) and writes the blackboard through one recording tool (`record_facts`, `record_coverage`, `record_payout`). The Manager ends with `submit_report`. Specialists use `include_contents="none"`, so results reach them only through the blackboard placeholders (`{bb_facts?}` and so on). `patterns.py` builds fresh agents for `sequential`, `parallel` (`ParallelAgent` of Policy and the crew) and `hierarchical` (Manager with `AgentTool`s). `runner.py` runs a claim with `RunConfig(max_llm_calls=30)` and a 15-minute timeout and saves the run; a run without a submitted report is `failed`.
+
+Differences from the plan:
+
+- **`PolicyTerms` added to `Coverage`** (warranty months, deductible, limit, depreciation, each quoted). The Settlement agent needs these numbers for `compute_payout`, and the Policy agent has already found them, so they travel on the blackboard instead of a second policy search.
+- **`AgentTool(RemoteA2aAgent)` works in ADK 2.12.0**, so the `transfer_to_agent` fallback was not needed.
+- **`record_facts(facts, missing)` takes two flat arguments.** With a single nested `Facts` argument, the model kept passing a bare list (5 rejected calls in one live run).
+- **Model-call timeout:** every ADK agent and the crew's LLM get `HttpOptions(timeout=120 s)`. Without it, a stalled call to an overloaded model hung a live run until the 15-minute run limit (2026-10-30).
+
+## Step 5: CrewAI fraud crew over A2A
+
+`src/claimsleuth/crew/crew.py`: Forensics analyst (`parse_document`) and History analyst (`claim_history`) through CrewAI's native MCP client, two tasks in `Process.sequential`, the second with `output_pydantic=Fraud`. Each task's `guardrail` rejects output that is not valid `Fraud` JSON, whose quotes are not at their line, or produced without the agent calling its tool (every document read; `claim_history` called), with `guardrail_max_retries=2`. Tool use is recorded from CrewAI's `ToolUsageFinishedEvent`; tokens per agent come from each agent's own `LLM` object. `src/claimsleuth/crew/a2a_server.py` refuses requests without the secret (`401`, agent card and `/healthz` excepted). `src/claimsleuth/agents/fraud_remote.py` is the ADK `RemoteA2aAgent`; its after-agent callback writes `bb_fraud` or records `bad_output`, which forces a full review.
+
+Differences from the plan:
+
+- **CrewAI's native Gemini provider** (`crewai[google-genai]==1.15.30`, which adds google-genai 1.65 to `.venv-crewai`). The OpenAI-compatible endpoint returned HTTP 400 on tool calls ("Function call is missing a thought_signature") with Gemini 3 models.
+- **The tool-use check in the guardrail was added after a live run** in which both analysts answered from the facts in the prompt without calling a tool (0 tool calls, 5.6 s).
+
+**Live check, Scenario 3, hierarchical, direct prompts, `gemini-3.5-flash-lite` (2026-10-30), run `6e93f40cc2ce`:** completed in 113 s. The Manager called Evidence, then Policy, then the crew, and skipped Settlement. `bb_fraud`: `flagged: true` with two high findings, "serial_number_mismatch" (invoice line 9 `REF-HC-77100-A` against repair estimate line 9 `REF-HC-99400-B`) and "serial_number_reuse" (`REF-HC-99400-B` claimed by Karen Whitfield 189 days earlier). Report: `request_evidence`, `full_review`, no payout. Trace `2d87fc5c195ff9b41bb3ef4e114b798b` (108 spans) contains `mcp.claim_history <- crewai.crew <- a2a ... send_message <- invoke_agent fraud_crew <- execute_tool fraud_crew <- invoke_agent claim_manager <- claimsleuth.investigation`, so one trace crosses ADK, A2A, CrewAI and MCP.
+
+Earlier live runs: Scenario 1, sequential, `gemini-3.5-flash-lite`: approve, $251.00, `full_review`, 76 s. Two Scenario 3 attempts on `gemini-3.8-flash` failed: one with a TLS error during a network drop, one stopped by the 15-minute limit while the crew's model call hung (no timeout then; fixed above).
+
+**Not yet done for step 4:** the 9-run check (3 demos x 3 patterns). The Gemini free tier allows about 20 requests per model per day; `gemini-3.5-flash` ran out on 2026-10-30.
+
+## Step 6: callbacks for guardrails, monitoring, heat maps and tracing
+
+`src/claimsleuth/callbacks/hooks.py` holds the callbacks, attached to every agent by `attach_callbacks()` in `patterns.build()` (`tests/test_patterns.py` checks every agent in every pattern). `before_model` screens the model input for injection and abuse (the patterns kept from the first version), records each hit once with where it came from (customer statement or document id), redacts abuse, wraps the statement in `<customer_statement>` tags and adds a security notice when an injection was found. `before_tool` refuses tools not on the agent's list and documents or claim ids of another claim. `after_tool` validates MCP results against the tool's return model (`bad_tool_result`). `on_tool_error` turns exceptions into errors the model sees. `after_agent` checks every Evidence fact quote (bad ones dropped, `bad_quote`) and the Policy clause and term quotes. `submit_report` checks the Manager's quotes and replaces a stated payout that differs from `bb_payout` (`bad_output`).
+
+`src/claimsleuth/callbacks/metrics.py` collects time, tokens, model calls, tool calls, errors and guardrail hits per agent; the runner writes them to `agent_metrics` and the totals to `runs`. The crew's agents appear as `forensics` and `history` with their own numbers. `src/claimsleuth/charts.py` draws the per-run heat map.
+
+Tracing: MCP tool calls run in an `mcp.<tool>` span whose parent is the caller's `traceparent` header (set by the `/mcp` middleware). The crew service has OpenTelemetry's SDK disabled, so it returns span records for the crew and its two tasks in the A2A reply, and the ADK callback writes them into the same trace file. The crew's MCP calls carry the crew span as their parent.
+
+**Check so far:** `tests/test_guardrails.py` (injection and abuse patterns, statement and document attribution, quote check drops an invented quote, a malformed tool result becomes `bad_tool_result`, tool allowlists, other-claim refusals, payout replacement, approval without a payout refused). The injector-persona live check is part of step 8.

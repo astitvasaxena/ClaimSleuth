@@ -11,7 +11,7 @@ from google.genai import types
 
 from claimsleuth import config
 from claimsleuth.tracing import traceparent_headers
-from claimsleuth.models import (Coverage, Facts, FinalReport, Fraud, GuardrailHit, ManagerSubmission, Payout,
+from claimsleuth.models import (Coverage, Fact, Facts, FinalReport, Fraud, GuardrailHit, ManagerSubmission, Payout,
                                 review_level)
 
 PROMPTS_DIR = Path(__file__).parent / "prompts"
@@ -69,9 +69,9 @@ def add_guardrail_hit(state, hit: GuardrailHit) -> None:
 
 # ─── Recording tools: they only store a validated result on the blackboard ────────────────
 
-def record_facts(facts: Facts, tool_context: ToolContext) -> dict:
-    """Save the facts you extracted, each with its exact quote, and the list of missing items, to the blackboard."""
-    facts = Facts.model_validate(facts)
+def record_facts(facts: list[Fact], missing: list[str], tool_context: ToolContext) -> dict:
+    """Save the facts you extracted (each with its exact quote) and the list of missing items to the blackboard."""
+    facts = Facts.model_validate({"facts": facts, "missing": missing})
     tool_context.state[BB_FACTS] = facts.model_dump_json()
     return {"saved": "bb_facts", "facts": len(facts.facts), "missing": facts.missing}
 

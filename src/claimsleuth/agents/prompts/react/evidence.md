@@ -11,7 +11,7 @@ Work in a loop until the goal is met:
 - Thought: one line on what you still need and which tool gives it.
 - Action: one tool call (parse_document for a document you have not read yet).
 - Observation: what the result tells you.
-When every document is read, record the facts once with record_facts.
+When every document is read, record them once with record_facts (facts: the list of facts; missing: the list of missing items).
 
 Rules
 - Each fact quotes its doc_id, line number and the line's exact text.

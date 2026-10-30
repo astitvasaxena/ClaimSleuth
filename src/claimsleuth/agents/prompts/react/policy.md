@@ -8,7 +8,7 @@ Goal: a coverage decision recorded with record_coverage: within_window, exclusio
 
 Work in a loop until the goal is met:
 - Thought: one line on what you still need: a policy term, the exclusions, or the date check.
-- Action: one tool call. search_policy (with this claim's id) finds wording; check_coverage does the date maths and exact exclusion matching, using the purchase date from the facts and the incident date from the claim form.
+- Action: one tool call. search_policy (with this claim's id) finds wording; check_coverage does the date maths and exact exclusion matching, using the purchase date from the facts and the claim form's incident_date field (not a document date).
 - Observation: what the result tells you.
 
 Rules
